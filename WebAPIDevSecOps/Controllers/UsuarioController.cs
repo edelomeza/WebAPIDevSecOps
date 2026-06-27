@@ -1,0 +1,167 @@
+using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using WebAPIDevSecOps.Dto;
+using WebAPIDevSecOps.Interfaces;
+using WebAPIDevSecOps.Models;
+
+/// <summary>
+/// Controlador para la gestión de usuarios del sistema.
+/// </summary>
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
+[ApiController]
+public class UsuarioController : ControllerBase
+{
+    private readonly IUsuarioService _usuarioService;
+
+    /// <summary>
+    /// Inicializa una nueva instancia del controlador de usuarios.
+    /// </summary>
+    /// <param name="usuarioService">Servicio de usuarios.</param>
+    public UsuarioController(IUsuarioService usuarioService)
+    {
+        _usuarioService = usuarioService;
+    }
+
+    /// <summary>
+    /// Obtiene todos los usuarios con paginación y filtros opcionales.
+    /// </summary>
+    /// <param name="queryParams">Parámetros de consulta (paginación, filtros).</param>
+    /// <returns>Lista paginada de usuarios.</returns>
+    /// <response code="200">Usuarios obtenidos correctamente.</response>
+    /// <response code="401">No autenticado.</response>
+    /// <response code="403">No tiene permisos de administrador.</response>
+    [HttpGet]
+    [Authorize(Policy = "AdminOnly")]
+    [ResponseCache(NoStore = true)]
+    [ProducesResponseType(typeof(PagedResult<SegUsuarioDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<SegUsuarioDto>>> GetAll([FromQuery] QueryParams? queryParams = null)
+    {
+        var usuarios = await _usuarioService.GetAllAsync(queryParams);
+        return Ok(usuarios);
+    }
+
+    /// <summary>
+    /// Obtiene un usuario por su ID.
+    /// </summary>
+    /// <param name="id">Identificador único del usuario.</param>
+    /// <returns>Usuario solicitado.</returns>
+    /// <response code="200">Usuario encontrado.</response>
+    /// <response code="401">No autenticado.</response>
+    /// <response code="403">No tiene permisos de administrador.</response>
+    /// <response code="404">Usuario no encontrado.</response>
+    [HttpGet("{id}")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(typeof(SegUsuarioDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SegUsuarioDto>> Get(int id)
+    {
+        var segUsuario = await _usuarioService.GetByIdAsync(id);
+
+        if (segUsuario == null)
+            return NotFound();
+
+        return Ok(segUsuario);
+    }
+
+    /// <summary>
+    /// Actualiza un usuario existente.
+    /// </summary>
+    /// <param name="id">Identificador único del usuario.</param>
+    /// <param name="dto">Datos actualizados del usuario.</param>
+    /// <response code="204">Usuario actualizado correctamente.</response>
+    /// <response code="400">Solicitud inválida.</response>
+    /// <response code="401">No autenticado.</response>
+    /// <response code="403">No tiene permisos de administrador.</response>
+    /// <response code="404">Usuario no encontrado.</response>
+    [HttpPut("{id}")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(int id, UsuarioUpdateDto dto)
+    {
+        try
+        {
+            await _usuarioService.UpdateAsync(id, dto);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Crea un nuevo usuario.
+    /// </summary>
+    /// <param name="dto">Datos del usuario a crear.</param>
+    /// <returns>Usuario creado.</returns>
+    /// <response code="201">Usuario creado correctamente.</response>
+    /// <response code="400">Datos inválidos.</response>
+    /// <response code="401">No autenticado.</response>
+    /// <response code="403">No tiene permisos de administrador.</response>
+    [HttpPost]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(typeof(SegUsuarioDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<SegUsuarioDto>> Create(UsuarioCreateDto dto)
+    {
+        try
+        {
+            var result = await _usuarioService.CreateAsync(dto);
+            return CreatedAtAction(nameof(Get), new { id = result.id }, result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Elimina un usuario por su ID.
+    /// </summary>
+    /// <param name="id">Identificador único del usuario.</param>
+    /// <param name="dto">Datos para confirmar la eliminación (RowVersion).</param>
+    /// <response code="200">Usuario eliminado correctamente.</response>
+    /// <response code="400">El ID de la ruta no coincide con el cuerpo de la solicitud.</response>
+    /// <response code="401">No autenticado.</response>
+    /// <response code="403">No tiene permisos de administrador.</response>
+    /// <response code="404">Usuario no encontrado.</response>
+    [HttpDelete("{id}")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(int id, UsuarioDeleteDto dto)
+    {
+        try
+        {
+            if (id != dto.id)
+                return BadRequest("El ID de la ruta no coincide con el ID del cuerpo.");
+
+            await _usuarioService.DeleteAsync(id, dto);
+            return Ok();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+}

@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="IntegrationTest/IntegrationTest.csproj" />
+  <Project Path="SecurityTest/SecurityTest.csproj" />
+  <Project Path="UnitTest/UnitTest.csproj" />
+  <Project Path="WebAPIDevSecOps/WebAPIDevSecOps.csproj" />
+</Solution>

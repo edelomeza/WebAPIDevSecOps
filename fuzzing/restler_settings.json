@@ -1,0 +1,20 @@
+{
+  "max_combinations": 500,
+  "max_request_execution_time": 30,
+  "time_between_requests_ms": 100,
+  "producer_timing_delay": 200,
+  "dyn_object_cache_size": 50,
+  "disallow_duplicates": true,
+  "fuzzing_mode": "bfs",
+  "fuzzing_jobs": 4,
+  "ignore_dependencies": false,
+  "ignore_feedback": false,
+  "target_ip": "127.0.0.1",
+  "target_port": 8080,
+  "total_execution_time": 600,
+  "disable_ssl": true,
+  "request_throttle_ms": 50,
+  "max_async_resource_creation_time": 2000,
+  "async_consumer_buffer_size": 100,
+  "garbage_collection_interval": 5000
+}

@@ -1,0 +1,83 @@
+rules:
+  - id: hardcoded-connection-string
+    pattern: '"Server=...;Database=...;User Id=...;Password=..."'
+    message: >-
+      Hardcoded connection string detected. Use configuration or secrets.
+    severity: ERROR
+    languages: [csharp]
+    paths:
+      exclude:
+        - "*.Development.json"
+        - "appsettings.json"
+
+  - id: disable-ssl-validation
+    patterns:
+      - pattern-either:
+          - pattern: "TrustServerCertificate=True"
+          - pattern: "Encrypt=False"
+    message: >-
+      Disabled SSL/TLS validation detected. Remove in production.
+    severity: ERROR
+    languages: [csharp]
+    paths:
+      include:
+        - "*.cs"
+
+  - id: weak-password-validation
+    patterns:
+      - pattern: |
+          string.IsNullOrWhiteSpace(request.Password)
+      - pattern-not: |
+          use FluentValidation or similar
+    message: >-
+      Weak inline password validation. Use a dedicated validator.
+    severity: WARNING
+    languages: [csharp]
+    paths:
+      include:
+        - "Controllers/*.cs"
+
+  - id: hardcoded-jwt-key
+    patterns:
+      - pattern: |
+          "Jwt:Key"
+      - pattern-not: |
+          UseSetting("Jwt:Key", ...)
+    message: >-
+      JWT signing key loaded from configuration - ensure it's stored in secrets.
+    severity: INFO
+    languages: [csharp]
+
+  - id: disable-https
+    patterns:
+      - pattern: "app.UseHttpsRedirection();"
+      - pattern-not-inside: |
+          if (!app.Environment.IsDevelopment()) { ... }
+    message: >-
+      HTTPS redirection may be disabled. Use conditional HttpsRedirection.
+    severity: WARNING
+    languages: [csharp]
+
+  - id: unvalidated-model-bind
+    patterns:
+      - pattern: |
+          [FromBody] $TYPE $VAR
+      - pattern-not-inside: |
+          IValidator<$TYPE> ...
+    message: >-
+      Model binding without FluentValidation validation.
+      Inject IValidator<$TYPE> and call ValidateAsync.
+    severity: WARNING
+    languages: [csharp]
+
+  - id: insecure-random
+    pattern-either:
+      - pattern: "new Random()"
+      - pattern: "Random.Next()"
+    message: >-
+      Use RandomNumberGenerator instead of System.Random for security-sensitive contexts.
+    severity: WARNING
+    languages: [csharp]
+    paths:
+      include:
+        - "*.cs"

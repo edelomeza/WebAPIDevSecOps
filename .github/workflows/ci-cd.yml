@@ -1,0 +1,367 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths-ignore:
+      - "**.md"
+      - ".gitignore"
+      - ".dockerignore"
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore
+
+      - name: Run Unit Tests
+        run: dotnet test UnitTest/UnitTest.csproj -c Release --no-build --verbosity normal --logger "trx;LogFileName=unit-test-results.trx"
+
+      - name: Run Integration Tests
+        run: dotnet test IntegrationTest/IntegrationTest.csproj -c Release --no-build --verbosity normal --logger "trx;LogFileName=integration-test-results.trx"
+
+      - name: Run Security Tests
+        run: dotnet test SecurityTest/SecurityTest.csproj -c Release --no-build --verbosity normal --logger "trx;LogFileName=security-test-results.trx"
+
+      - name: Check Vulnerable Dependencies
+        run: |
+          echo "# Reporte de Dependencias Vulnerables" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee -a $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate SBOM
+        run: |
+          dotnet tool install --global CycloneDX
+          mkdir -p sbom
+          dotnet CycloneDX WebAPIDevSecOps/WebAPIDevSecOps.csproj \
+            --json --out sbom --exclude-test-projects
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom/bom.json
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: "**/*.trx"
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=ref,event=branch
+            type=sha,format=short
+
+      - name: Build and Push Docker Image
+        id: docker_build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.4.x'
+
+      - name: Sign image with Cosign (Keyless)
+        run: |
+          cosign sign \
+            --yes \
+            --oidc-issuer "https://token.actions.githubusercontent.com" \
+            --oidc-client-id "sigstore" \
+            "${{ steps.meta.outputs.tags }}"@${{ steps.docker_build.outputs.digest }}
+
+      - name: Verify signature
+        run: |
+          cosign verify \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/ci-cd.yml" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "${{ steps.meta.outputs.tags }}"@${{ steps.docker_build.outputs.digest }}
+
+      - name: Scan container with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.tags }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          exit-code: 1
+
+      - name: Upload Trivy Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-results.sarif
+
+  sonarcloud:
+    name: SonarCloud SAST
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name != 'pull_request' && secrets.SONAR_TOKEN != ''
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Install SonarScanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Begin SonarCloud scan
+        run: |
+          dotnet sonarscanner begin \
+            /k:"${{ vars.SONAR_PROJECT_KEY }}" \
+            /o:"${{ vars.SONAR_ORG }}" \
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.cs.opencover.reportsPaths="**/*.opencover.xml"
+
+      - name: Build for Sonar
+        run: dotnet build -c Release
+
+      - name: Run tests with coverage
+        run: dotnet test UnitTest/UnitTest.csproj -c Release --no-build \
+          /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+
+      - name: End SonarCloud scan
+        run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for Quality Gate
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        with:
+          projectKey: ${{ vars.SONAR_PROJECT_KEY }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        run: |
+          semgrep ci \
+            --config=auto \
+            --config=.semgrep/semgrep.yaml \
+            --json-output=semgrep-report.json \
+            --error \
+            --metrics=off
+
+      - name: Upload Semgrep Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep-report.json
+
+  fuzz:
+    name: RESTler Fuzzing
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate JWT token for fuzzing
+        run: |
+          pip install pyjwt
+          python3 fuzzing/generate_token.py
+
+      - name: Run API container (Development mode for OpenAPI)
+        run: |
+          docker run -d -p 8080:8080 \
+            -e ASPNETCORE_ENVIRONMENT=Development \
+            --name webapi-fuzz \
+            ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:sha-${{ github.sha }}
+
+      - name: Wait for API to be healthy
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8080/health/ready && break
+            sleep 2
+          done
+
+      - name: Download OpenAPI spec
+        run: |
+          mkdir -p fuzzing
+          curl -s http://localhost:8080/openapi/v1.json > fuzzing/openapi.json
+          echo "OpenAPI spec downloaded ($(wc -c < fuzzing/openapi.json) bytes)"
+
+      - name: Compile RESTler grammar
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/fuzzing:/fuzzing \
+            --network host \
+            mcr.microsoft.com/restlerfuzzer/restler:latest \
+            dotnet /RESTler/restler/Restler.dll compile \
+              --api-spec /fuzzing/openapi.json
+
+      - name: Quick test mode
+        run: |
+          GRAMMAR=$(ls fuzzing/Compile/grammar.py 2>/dev/null || echo "")
+          if [ -z "$GRAMMAR" ]; then
+            GRAMMAR=$(find fuzzing -name "grammar.py" -path "*/Compile/*" | head -1)
+          fi
+          echo "Using grammar: $GRAMMAR"
+          docker run --rm \
+            -v ${{ github.workspace }}/fuzzing:/fuzzing \
+            --network host \
+            mcr.microsoft.com/restlerfuzzer/restler:latest \
+            dotnet /RESTler/restler/Restler.dll test \
+              --grammar_file $GRAMMAR \
+              --settings /fuzzing/restler_settings.json \
+              --token_file /fuzzing/token.txt
+
+      - name: Full fuzzing
+        timeout-minutes: 15
+        run: |
+          GRAMMAR=$(ls fuzzing/Compile/grammar.py 2>/dev/null || echo "")
+          if [ -z "$GRAMMAR" ]; then
+            GRAMMAR=$(find fuzzing -name "grammar.py" -path "*/Compile/*" | head -1)
+          fi
+          docker run --rm \
+            -v ${{ github.workspace }}/fuzzing:/fuzzing \
+            --network host \
+            mcr.microsoft.com/restlerfuzzer/restler:latest \
+            dotnet /RESTler/restler/Restler.dll fuzz \
+              --grammar_file $GRAMMAR \
+              --settings /fuzzing/restler_settings.json \
+              --token_file /fuzzing/token.txt
+
+      - name: Check results for bugs
+        run: python3 fuzzing/check_results.py
+
+      - name: Upload RESTler report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: restler-report
+          path: fuzzing/RestlerResults/
+
+  dast:
+    name: DAST (OWASP ZAP)
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.4.x'
+
+      - name: Verify image signature before running DAST
+        run: |
+          cosign verify \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/ci-cd.yml" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:sha-${{ github.sha }}
+
+      - name: Run API container
+        run: |
+          docker run -d -p 8080:8080 \
+            --name webapi \
+            ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:sha-${{ github.sha }}
+
+      - name: ZAP API Scan
+        uses: zaproxy/action-api-scan@v0.7
+        with:
+          target: 'http://localhost:8080/scalar/v1/openapi.json'
+          format: 'openapi'
+          fail_on_high: true
+          issue_title: 'ZAP DAST Report'
+          allow_issue_writing: false
+
+      - name: Upload ZAP Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-report
+          path: zap-report.*
