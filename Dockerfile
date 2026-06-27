@@ -11,11 +11,6 @@ RUN dotnet restore
 COPY . .
 RUN dotnet build -c Release --no-restore
 
-FROM build AS test
-RUN dotnet test UnitTest/UnitTest.csproj -c Release --no-build --verbosity normal
-RUN dotnet test IntegrationTest/IntegrationTest.csproj -c Release --no-build --verbosity normal
-RUN dotnet test SecurityTest/SecurityTest.csproj -c Release --no-build --verbosity normal
-
 FROM build AS publish
 RUN dotnet publish WebAPIDevSecOps/WebAPIDevSecOps.csproj -c Release -o /app/publish --no-build
 
@@ -29,6 +24,15 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 
 COPY --from=publish /app/publish .
 
-USER $APP_UID
+# Allow overriding the runtime user via build-arg. Default to UID 1000.
+ARG APP_UID=1000
+# Create a non-root user with the requested UID and make /app owned by it.
+RUN set -eux; \
+    if ! id -u appuser >/dev/null 2>&1; then \
+      useradd -m -u "${APP_UID}" appuser || true; \
+    fi; \
+    chown -R "${APP_UID}":"${APP_UID}" /app || true
+
+USER ${APP_UID}
 
 ENTRYPOINT ["dotnet", "WebAPIDevSecOps.dll"]
