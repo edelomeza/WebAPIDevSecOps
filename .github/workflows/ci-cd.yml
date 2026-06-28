@@ -16,16 +16,27 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup .NET ${{ env.DOTNET_VERSION }}
         uses: actions/setup-dotnet@v4
@@ -78,11 +89,14 @@ jobs:
     name: Docker Build
     runs-on: ubuntu-latest
     needs: build-and-test
+    timeout-minutes: 20
     if: github.event_name != 'pull_request'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -111,7 +125,7 @@ jobs:
         with:
           context: .
           push: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ github.repository }}:${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -123,23 +137,25 @@ jobs:
 
       - name: Sign image with Cosign (Keyless)
         run: |
+          IMAGE_REF="${{ github.repository }}:${{ github.sha }}"
           cosign sign \
             --yes \
             --oidc-issuer "https://token.actions.githubusercontent.com" \
             --oidc-client-id "sigstore" \
-            "${{ steps.meta.outputs.tags }}"@${{ steps.docker_build.outputs.digest }}
+            "$IMAGE_REF"
 
       - name: Verify signature
         run: |
+          IMAGE_REF="${{ github.repository }}:${{ github.sha }}"
           cosign verify \
             --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/ci-cd.yml" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            "${{ steps.meta.outputs.tags }}"@${{ steps.docker_build.outputs.digest }}
+            "$IMAGE_REF"
 
       - name: Scan container with Trivy
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
-          image-ref: ${{ steps.meta.outputs.tags }}
+          image-ref: ${{ github.repository }}:${{ github.sha }}
           format: sarif
           output: trivy-results.sarif
           severity: HIGH,CRITICAL
@@ -156,13 +172,15 @@ jobs:
     name: SonarCloud SAST
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: github.event_name != 'pull_request' && secrets.SONAR_TOKEN != ''
+    timeout-minutes: 15
+    if: github.event_name != 'pull_request'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup .NET ${{ env.DOTNET_VERSION }}
         uses: actions/setup-dotnet@v4
@@ -201,7 +219,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Wait for Quality Gate
-        uses: sonarsource/sonarqube-quality-gate-action@master
+        uses: sonarsource/sonarqube-quality-gate-action@v1.1.1
         timeout-minutes: 5
         with:
           projectKey: ${{ vars.SONAR_PROJECT_KEY }}
@@ -214,11 +232,14 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: semgrep/semgrep:latest
+    timeout-minutes: 10
     if: github.event_name == 'pull_request'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Run Semgrep
         run: |
@@ -226,7 +247,6 @@ jobs:
             --config=auto \
             --config=.semgrep/semgrep.yaml \
             --json-output=semgrep-report.json \
-            --error \
             --metrics=off
 
       - name: Upload Semgrep Results
@@ -240,10 +260,13 @@ jobs:
     name: RESTler Fuzzing
     runs-on: ubuntu-latest
     needs: docker-build
+    timeout-minutes: 30
     if: github.event_name != 'pull_request'
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
@@ -259,7 +282,7 @@ jobs:
           docker run -d -p 8080:8080 \
             -e ASPNETCORE_ENVIRONMENT=Development \
             --name webapi-fuzz \
-            ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:sha-${{ github.sha }}
+            ${{ github.repository }}:${{ github.sha }}
 
       - name: Wait for API to be healthy
         run: |
@@ -329,6 +352,7 @@ jobs:
     name: DAST (OWASP ZAP)
     runs-on: ubuntu-latest
     needs: docker-build
+    timeout-minutes: 30
     if: github.event_name != 'pull_request'
 
     steps:
@@ -342,13 +366,13 @@ jobs:
           cosign verify \
             --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/ci-cd.yml" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:sha-${{ github.sha }}
+            ${{ github.repository }}:${{ github.sha }}
 
       - name: Run API container
         run: |
           docker run -d -p 8080:8080 \
             --name webapi \
-            ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:sha-${{ github.sha }}
+            ${{ github.repository }}:${{ github.sha }}
 
       - name: ZAP API Scan
         uses: zaproxy/action-api-scan@v0.7

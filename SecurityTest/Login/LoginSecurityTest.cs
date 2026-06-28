@@ -15,7 +15,7 @@ using WebAPIDevSecOps.Services;
 
 namespace SecurityTest.Login
 {
-    public class LoginSecurityTest : IClassFixture<WebApplicationFactory<Program>>
+    public class LoginSecurityTest : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
     {
         private readonly HttpClient _client;
 
@@ -23,12 +23,22 @@ namespace SecurityTest.Login
         {
             _client = factory.WithWebHostBuilder(builder =>
             {
+                builder.UseSetting("ConnectionStrings:DefaultConnection", "Server=.;Database=Test;Trusted_Connection=True;");
                 builder.UseSetting("Jwt:Key", "01123581321345589144233377610987");
                 builder.UseSetting("Jwt:Issuer", "edelmeza.com");
                 builder.UseSetting("Jwt:Audience", "edelmeza.com");
                 builder.UseSetting("UseInMemoryDatabase", "true");
+                builder.UseSetting("InMemoryDatabaseName", $"LoginSecurityDb_{Guid.NewGuid():N}");
             }).CreateClient();
         }
+
+        public Task InitializeAsync()
+        {
+            TokenBlacklist.Clear();
+            return Task.CompletedTask;
+        }
+
+        public Task DisposeAsync() => Task.CompletedTask;
 
         //Fuerza bruta (Rate Limiting)
         [Fact]
