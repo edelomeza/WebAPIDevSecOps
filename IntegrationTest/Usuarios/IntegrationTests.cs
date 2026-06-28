@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using UnitTest.Common;
 using WebAPIDevSecOps.Context;
 using WebAPIDevSecOps.Dto;
+using WebAPIDevSecOps.Services;
 
 namespace IntegrationTest.Usuarios;
 
@@ -24,12 +25,14 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
             builder.UseSetting("Jwt:Issuer", JwtTestConfig.Issuer);
             builder.UseSetting("Jwt:Audience", JwtTestConfig.Audience);
             builder.UseSetting("UseInMemoryDatabase", "true");
+            builder.UseSetting("InMemoryDatabaseName", $"IntegrationTestDb_{Guid.NewGuid():N}");
         });
         _client = _factory.CreateClient();
     }
 
     public async Task InitializeAsync()
     {
+        TokenBlacklist.Clear();
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.SegUsuario.RemoveRange(db.SegUsuario);

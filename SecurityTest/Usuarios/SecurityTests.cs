@@ -8,7 +8,7 @@ using UnitTest.Common;
 
 namespace SecurityTest.Usuarios
 {
-    public class SecurityTests : IClassFixture<WebApplicationFactory<Program>>
+    public class SecurityTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
     {
         private readonly HttpClient _client;
         private const string JwtKey = "01123581321345589144233377610987";
@@ -24,8 +24,17 @@ namespace SecurityTest.Usuarios
                 builder.UseSetting("Jwt:Issuer", JwtIssuer);
                 builder.UseSetting("Jwt:Audience", JwtAudience);
                 builder.UseSetting("UseInMemoryDatabase", "true");
+                builder.UseSetting("InMemoryDatabaseName", $"SecurityTestDb_{Guid.NewGuid():N}");
             }).CreateClient();
         }
+
+        public Task InitializeAsync()
+        {
+            TokenBlacklist.Clear();
+            return Task.CompletedTask;
+        }
+
+        public Task DisposeAsync() => Task.CompletedTask;
 
         private string AdminToken => TokenHelper.GenerateValidToken(JwtKey, JwtIssuer, JwtAudience);
 

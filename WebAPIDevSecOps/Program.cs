@@ -77,8 +77,9 @@ if (builder.Configuration.GetValue<bool>("UseInMemoryDatabase"))
 {
     builder.Services.RemoveAll(typeof(AppDbContext));
     builder.Services.RemoveAll(typeof(DbContextOptions<AppDbContext>));
+    var dbName = builder.Configuration["InMemoryDatabaseName"] ?? "AppDb";
     builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseInMemoryDatabase("AppDb"));
+        options.UseInMemoryDatabase(dbName));
 }
 else
 {

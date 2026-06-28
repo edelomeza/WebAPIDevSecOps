@@ -64,6 +64,11 @@ namespace WebAPIDevSecOps.Services
             }
         }
 
+        public static void Clear()
+        {
+            _tokens.Clear();
+        }
+
         public static int Count => _tokens.Count;
     }
 }
