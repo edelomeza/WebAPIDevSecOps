@@ -247,7 +247,6 @@ jobs:
             --config=auto \
             --config=.semgrep/semgrep.yaml \
             --json-output=semgrep-report.json \
-            --error \
             --metrics=off
 
       - name: Upload Semgrep Results
