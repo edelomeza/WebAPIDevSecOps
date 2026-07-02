@@ -246,6 +246,7 @@ jobs:
           semgrep ci \
             --config=auto \
             --config=.semgrep/semgrep.yaml \
+            --baseline-commit origin/${{ github.base_ref }} \
             --json-output=semgrep-report.json \
             --metrics=off
 
