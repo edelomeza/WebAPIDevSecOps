@@ -219,7 +219,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Wait for Quality Gate
-        uses: sonarsource/sonarqube-quality-gate-action@v1.1.1
+        uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
         timeout-minutes: 5
         with:
           projectKey: ${{ vars.SONAR_PROJECT_KEY }}
