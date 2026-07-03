@@ -237,11 +237,10 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check coverage threshold (≥60%)
+      - name: Check coverage threshold (>= 60%)
         run: |
           python3 -c "
-import xml.etree.ElementTree as ET, glob, sys, re
-ns = re.compile(r'\{(.+?)\}')
+import xml.etree.ElementTree as ET, glob, sys
 files = glob.glob('coverage/*/coverage.opencover.xml')
 if not files:
     print('ERROR: No coverage reports found')
@@ -254,13 +253,13 @@ for f in files:
         s = summary.attrib
         total_seq += int(s.get('numSequencePoints', 0))
         total_vis += int(s.get('visitedSequencePoints', 0))
-        print(f'  {f}: {s.get(\"sequenceCoverage\", \"?\")}%')
+        print('  %s: %s%%' % (f, s.get('sequenceCoverage', '?')))
 pct = (total_vis / total_seq * 100) if total_seq else 0
-print(f'Total: {pct:.1f}% ({total_vis}/{total_seq})')
+print('Total: %.1f%% (%d/%d)' % (pct, total_vis, total_seq))
 if pct < 60:
     print('ERROR: Coverage below 60% threshold')
     sys.exit(1)
-print('OK: Coverage ≥ 60%')
+print('OK: Coverage >= 60%')
 "
 
   semgrep:
