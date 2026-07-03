@@ -298,6 +298,16 @@ jobs:
           done
           echo "OpenAPI spec downloaded ($(wc -c < fuzzing/openapi.json) bytes)"
 
+      - name: Generate RESTler config
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/fuzzing:/fuzzing \
+            --network host \
+            mcr.microsoft.com/restlerfuzzer/restler:latest \
+            dotnet /RESTler/restler/Restler.dll generate_config \
+              --specs /fuzzing/openapi.json \
+              --output_dir /fuzzing/restler-config
+
       - name: Compile RESTler grammar
         run: |
           docker run --rm \
@@ -305,7 +315,7 @@ jobs:
             --network host \
             mcr.microsoft.com/restlerfuzzer/restler:latest \
             dotnet /RESTler/restler/Restler.dll compile \
-              --api-spec /fuzzing/openapi.json
+              /fuzzing/restler-config/config.json
 
       - name: Quick test mode
         run: |
@@ -369,7 +379,7 @@ jobs:
 
       - name: Run API container
         run: |
-          docker run -d -p 8080:8080 \
+          docker run -d --network host \
             --name webapi \
             ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}
 
