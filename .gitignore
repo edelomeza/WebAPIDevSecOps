@@ -63,3 +63,7 @@ secrets.*.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated artifacts
+artifacts/
+pr-body*.md
