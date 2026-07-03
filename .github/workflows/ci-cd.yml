@@ -208,8 +208,19 @@ jobs:
       - name: Build for Sonar
         run: dotnet build -c Release
 
-      - name: Run tests with coverage
-        run: dotnet test UnitTest/UnitTest.csproj -c Release --no-build -p:CollectCoverage=true -p:CoverletOutputFormat=opencover
+      - name: Run Unit Tests with coverage
+        run: >
+          dotnet test UnitTest/UnitTest.csproj -c Release --no-build
+          --collect:"XPlat Code Coverage"
+          --results-directory ./coverage
+          --settings coverage.runsettings
+
+      - name: Run Integration Tests with coverage
+        run: >
+          dotnet test IntegrationTest/IntegrationTest.csproj -c Release --no-build
+          --collect:"XPlat Code Coverage"
+          --results-directory ./coverage
+          --settings coverage.runsettings
 
       - name: End SonarCloud scan
         run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
