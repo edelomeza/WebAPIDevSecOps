@@ -261,7 +261,7 @@ jobs:
     if: github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -287,11 +287,15 @@ jobs:
             curl -sf http://localhost:8080/health/ready && break
             sleep 2
           done
+          sleep 5
 
       - name: Download OpenAPI spec
         run: |
           mkdir -p fuzzing
-          curl -s http://localhost:8080/openapi/v1.json > fuzzing/openapi.json
+          for i in $(seq 1 10); do
+            curl -sf http://localhost:8080/openapi/v1.json > fuzzing/openapi.json && break
+            sleep 2
+          done
           echo "OpenAPI spec downloaded ($(wc -c < fuzzing/openapi.json) bytes)"
 
       - name: Compile RESTler grammar
@@ -374,7 +378,7 @@ jobs:
         with:
           target: 'http://localhost:8080/scalar/v1/openapi.json'
           format: 'openapi'
-          fail_on_high: true
+          fail_action: true
           issue_title: 'ZAP DAST Report'
           allow_issue_writing: false
 
