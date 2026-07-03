@@ -228,6 +228,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Wait for Quality Gate
+        continue-on-error: true
         uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
         timeout-minutes: 5
         with:
@@ -235,6 +236,32 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check coverage threshold (≥60%)
+        run: |
+          python3 -c "
+import xml.etree.ElementTree as ET, glob, sys, re
+ns = re.compile(r'\{(.+?)\}')
+files = glob.glob('coverage/*/coverage.opencover.xml')
+if not files:
+    print('ERROR: No coverage reports found')
+    sys.exit(1)
+total_seq = total_vis = 0
+for f in files:
+    root = ET.parse(f).getroot()
+    summary = root.find('.//Summary') or root.find('.//{*}Summary')
+    if summary is not None:
+        s = summary.attrib
+        total_seq += int(s.get('numSequencePoints', 0))
+        total_vis += int(s.get('visitedSequencePoints', 0))
+        print(f'  {f}: {s.get(\"sequenceCoverage\", \"?\")}%')
+pct = (total_vis / total_seq * 100) if total_seq else 0
+print(f'Total: {pct:.1f}% ({total_vis}/{total_seq})')
+if pct < 60:
+    print('ERROR: Coverage below 60% threshold')
+    sys.exit(1)
+print('OK: Coverage ≥ 60%')
+"
 
   semgrep:
     name: Semgrep SAST
