@@ -210,8 +210,7 @@ jobs:
         run: dotnet build -c Release
 
       - name: Run tests with coverage
-        run: dotnet test UnitTest/UnitTest.csproj -c Release --no-build \
-          /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+        run: dotnet test UnitTest/UnitTest.csproj -c Release --no-build -p:CollectCoverage=true -p:CoverletOutputFormat=opencover
 
       - name: End SonarCloud scan
         run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
