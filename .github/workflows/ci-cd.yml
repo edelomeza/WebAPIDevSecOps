@@ -113,7 +113,7 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: |
-            ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}
+            ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}
           tags: |
             type=semver,pattern={{version}}
             type=ref,event=branch
@@ -125,7 +125,7 @@ jobs:
         with:
           context: .
           push: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
-          tags: ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:${{ github.sha }}
+          tags: ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -137,7 +137,7 @@ jobs:
 
       - name: Sign image with Cosign (Keyless)
         run: |
-          IMAGE_REF="${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:${{ github.sha }}"
+          IMAGE_REF="${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}"
           cosign sign \
             --yes \
             --oidc-issuer "https://token.actions.githubusercontent.com" \
@@ -146,7 +146,7 @@ jobs:
 
       - name: Verify signature
         run: |
-          IMAGE_REF="${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:${{ github.sha }}"
+          IMAGE_REF="${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}"
           cosign verify \
             --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/ci-cd.yml" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
@@ -155,7 +155,7 @@ jobs:
       - name: Scan container with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:${{ github.sha }}
+          image-ref: ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}
           format: sarif
           output: trivy-results.sarif
           severity: HIGH,CRITICAL
@@ -280,7 +280,7 @@ jobs:
           docker run -d -p 8080:8080 \
             -e ASPNETCORE_ENVIRONMENT=Development \
             --name webapi-fuzz \
-            ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:${{ github.sha }}
+            ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}
 
       - name: Wait for API to be healthy
         run: |
@@ -364,13 +364,13 @@ jobs:
           cosign verify \
             --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/ci-cd.yml" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:${{ github.sha }}
+            ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}
 
       - name: Run API container
         run: |
           docker run -d -p 8080:8080 \
             --name webapi \
-            ${{ vars.REGISTRY_IMAGE || 'webapidevsecops' }}:${{ github.sha }}
+            ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}
 
       - name: ZAP API Scan
         uses: zaproxy/action-api-scan@v0.10.0
