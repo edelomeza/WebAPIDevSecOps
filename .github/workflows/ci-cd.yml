@@ -132,8 +132,6 @@ jobs:
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
-        with:
-          cosign-release: 'v2.4.x'
 
       - name: Sign image with Cosign (Keyless)
         run: |
@@ -356,8 +354,6 @@ jobs:
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
-        with:
-          cosign-release: 'v2.4.x'
 
       - name: Verify image signature before running DAST
         run: |
