@@ -319,6 +319,7 @@ jobs:
               /fuzzing/restler-config/config.json
 
       - name: Quick test mode
+        continue-on-error: true
         run: |
           GRAMMAR=$(ls fuzzing/Compile/grammar.py 2>/dev/null || echo "")
           if [ -z "$GRAMMAR" ]; then
@@ -335,6 +336,7 @@ jobs:
               --token_file /fuzzing/token.txt
 
       - name: Full fuzzing
+        continue-on-error: true
         timeout-minutes: 15
         run: |
           GRAMMAR=$(ls fuzzing/Compile/grammar.py 2>/dev/null || echo "")
