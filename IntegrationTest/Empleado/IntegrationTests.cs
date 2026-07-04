@@ -200,7 +200,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         {
             strNombre = "create_location",
             strAPaterno = "Test",
-            strCURP = "CRLOC1234567890ABCD"
+            strCURP = "CRLOC1234567890ABC"
         };
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/empleado")
@@ -223,7 +223,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         {
             strNombre = "create_dto",
             strAPaterno = "Test",
-            strCURP = "CRDTO1234567890ABCD"
+            strCURP = "CRDTO1234567890ABC"
         };
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/empleado")
@@ -267,7 +267,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         var dto = new EmpEmpleadoCreateDto
         {
             strNombre = "",
-            strCURP = "EMPTY12345678901234"
+            strCURP = "EMPTY1234567890123"
         };
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/empleado")
@@ -287,7 +287,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         var dto = new EmpEmpleadoCreateDto
         {
             strNombre = new string('a', 51),
-            strCURP = "LONG1234567890123456"
+            strCURP = "LONG12345678901234"
         };
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/empleado")
@@ -521,7 +521,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         {
             strNombre = "lifecycle_user",
             strAPaterno = "Life",
-            strCURP = "LIFECYCLE1234567890"
+            strCURP = "LIFECYCLE123456789"
         };
 
         var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/empleado")
