@@ -243,7 +243,7 @@ builder.Services.Configure<ResilienceOptions>(builder.Configuration.GetSection("
 builder.Services.AddSingleton<DbResilienceService>();
 builder.Services.AddScoped<ILoginService, LoginService>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
-//builder.Services.AddScoped<IEmpleadoService, EmpleadoService>();
+builder.Services.AddScoped<IEmpleadoService, EmpleadoService>();
 builder.Services.AddScoped<ITipoEmpleadoService, TipoEmpleadoService>();
 
 builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
