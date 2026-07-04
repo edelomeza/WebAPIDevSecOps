@@ -70,10 +70,9 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     options.SuppressModelStateInvalidFilter = false;
 });
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("DefaultConnection no configurada");
+var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryDatabase");
 
-if (builder.Configuration.GetValue<bool>("UseInMemoryDatabase"))
+if (useInMemory)
 {
     builder.Services.RemoveAll(typeof(AppDbContext));
     builder.Services.RemoveAll(typeof(DbContextOptions<AppDbContext>));
@@ -83,6 +82,9 @@ if (builder.Configuration.GetValue<bool>("UseInMemoryDatabase"))
 }
 else
 {
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("DefaultConnection no configurada");
+
     var dbUser = builder.Configuration["DB_USER"] ?? builder.Configuration["DbUser"];
     var dbPassword = builder.Configuration["DB_PASSWORD"] ?? builder.Configuration["DbPassword"];
 
@@ -112,10 +114,10 @@ else
 
 var healthChecks = builder.Services.AddHealthChecks();
 
-if (!builder.Configuration.GetValue<bool>("UseInMemoryDatabase"))
+if (!useInMemory)
 {
     healthChecks.AddSqlServer(
-        connectionString: connectionString,
+        connectionString: builder.Configuration.GetConnectionString("DefaultConnection"),
         healthQuery: "SELECT 1;",
         name: "sql-server",
         tags: new[] { "db", "sqlserver" });
