@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Threading;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,15 @@ namespace IntegrationTest.Empleado;
 
 public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
+    private static int _curpCounter;
+    private static readonly string[] ValidCurps =
+    [
+        "LOHA850315HDFBCR01", "CEMM880620MDFNBT02", "GUMR900101HNLVCH03",
+        "BACX001215HTCFBR04", "ROHI850315HDFBCR05", "DILA950220HDFNPR06",
+        "MAVR750810MNLBCH07", "PESC020301HTSRRN08", "HOGU880405MDFNBR09",
+        "SARO990710HSLBCH10"
+    ];
+    private static string NextCurp() => ValidCurps[Interlocked.Increment(ref _curpCounter) % ValidCurps.Length];
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
@@ -51,7 +61,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         {
             strNombre = nombre,
             strAPaterno = "Apellido",
-            strCURP = Guid.NewGuid().ToString("N")[..18].ToUpper()
+            strCURP = NextCurp()
         };
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/empleado")
@@ -200,7 +210,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         {
             strNombre = "create_location",
             strAPaterno = "Test",
-            strCURP = "CRLOC1234567890ABC"
+            strCURP = "LOHA850315HDFBCR01"
         };
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/empleado")
@@ -223,7 +233,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         {
             strNombre = "create_dto",
             strAPaterno = "Test",
-            strCURP = "CRDTO1234567890ABC"
+            strCURP = "CEMM880620MDFNBT02"
         };
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/empleado")
@@ -267,7 +277,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         var dto = new EmpEmpleadoCreateDto
         {
             strNombre = "",
-            strCURP = "EMPTY1234567890123"
+            strCURP = "BACX001215HTCFBR04"
         };
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/empleado")
@@ -287,7 +297,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         var dto = new EmpEmpleadoCreateDto
         {
             strNombre = new string('a', 51),
-            strCURP = "LONG12345678901234"
+            strCURP = "ROHI850315HDFBCR05"
         };
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/empleado")
@@ -521,7 +531,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         {
             strNombre = "lifecycle_user",
             strAPaterno = "Life",
-            strCURP = "LIFECYCLE123456789"
+            strCURP = "GUMR900101HNLVCH03"
         };
 
         var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/empleado")

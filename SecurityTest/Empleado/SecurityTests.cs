@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Threading;
 using WebAPIDevSecOps.Dto;
 using WebAPIDevSecOps.Services;
 using UnitTest.Common;
@@ -10,6 +11,15 @@ namespace SecurityTest.Empleado;
 
 public class SecurityTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
+    private static int _curpCounter;
+    private static readonly string[] ValidCurps =
+    [
+        "LOHA850315HDFBCR01", "CEMM880620MDFNBT02", "GUMR900101HNLVCH03",
+        "BACX001215HTCFBR04", "ROHI850315HDFBCR05", "DILA950220HDFNPR06",
+        "MAVR750810MNLBCH07", "PESC020301HTSRRN08", "HOGU880405MDFNBR09",
+        "SARO990710HSLBCH10"
+    ];
+    private static string NextCurp() => ValidCurps[Interlocked.Increment(ref _curpCounter) % ValidCurps.Length];
     private readonly HttpClient _client;
     private const string JwtKey = "01123581321345589144233377610987";
     private const string JwtIssuer = "edelmeza.com";
@@ -44,7 +54,7 @@ public class SecurityTests : IClassFixture<WebApplicationFactory<Program>>, IAsy
         {
             strNombre = uniqueName,
             strAPaterno = "Test",
-            strCURP = Guid.NewGuid().ToString("N")[..18].ToUpper()
+            strCURP = NextCurp()
         };
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/empleado")
