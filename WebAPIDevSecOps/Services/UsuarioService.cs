@@ -49,6 +49,36 @@ namespace WebAPIDevSecOps.Services
             };
         }
 
+        public async Task<PagedResult<SegUsuarioDto>> SearchByNameAsync(string texto, QueryParams? queryParams = null)
+        {
+            var p = queryParams ?? new QueryParams();
+
+            var query = _context.SegUsuario
+                .AsNoTracking()
+                .Where(u => u.strNombre.ToLower().Contains(texto.ToLower()))
+                .Select(u => new SegUsuarioDto
+                {
+                    id = u.id,
+                    strNombre = u.strNombre,
+                    strCorreoElectronico = u.strCorreoElectronico,
+                    RowVersion = u.RowVersion
+                });
+
+            var totalCount = await query.CountAsync();
+
+            query = query.ApplyPagination(p);
+
+            var items = await query.ToListAsync();
+
+            return new PagedResult<SegUsuarioDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = p.PageNumber,
+                PageSize = p.PageSize
+            };
+        }
+
         public async Task<SegUsuarioDto?> GetByIdAsync(int id)
         {
             return await _context.SegUsuario

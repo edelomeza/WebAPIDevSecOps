@@ -210,6 +210,76 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         result.TotalPages.Should().Be(1);
     }
 
+    // ==================== SEARCH BY NAME ====================
+
+    [Fact]
+    public async Task SearchByName_ReturnsMatchingUsers()
+    {
+        await CreateUserAsync("search_eduardo");
+        await CreateUserAsync("search_edel");
+        await CreateUserAsync("search_maria");
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/buscar?texto=ed");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await response.Content.ReadFromJsonAsync<PagedResult<SegUsuarioDto>>();
+        result!.Items.Should().HaveCount(2);
+        result.TotalCount.Should().Be(2);
+        result.Items.Select(i => i.strNombre).Should().Contain(["search_eduardo", "search_edel"]);
+    }
+
+    [Fact]
+    public async Task SearchByName_ReturnsEmpty_WhenNoMatch()
+    {
+        await CreateUserAsync("search_juan");
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/buscar?texto=xyz");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await response.Content.ReadFromJsonAsync<PagedResult<SegUsuarioDto>>();
+        result!.Items.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task SearchByName_WithPagination_ReturnsCorrectPage()
+    {
+        for (int i = 1; i <= 5; i++)
+            await CreateUserAsync($"search_page_admin{i}");
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/buscar?texto=admin&pageNumber=2&pageSize=2");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await response.Content.ReadFromJsonAsync<PagedResult<SegUsuarioDto>>();
+        result!.Items.Should().HaveCount(2);
+        result.TotalCount.Should().Be(5);
+        result.PageNumber.Should().Be(2);
+        result.PageSize.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task SearchByName_EmptyTexto_ReturnsBadRequest()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/buscar?texto=");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     [Fact]
     public async Task GetAll_DoesNotExposePassword()
     {
