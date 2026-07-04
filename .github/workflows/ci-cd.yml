@@ -295,6 +295,9 @@ jobs:
             -e ASPNETCORE_ENVIRONMENT=Development \
             -e UseInMemoryDatabase=true \
             -e ConnectionStrings__DefaultConnection="unused" \
+            -e Jwt__Key="CI_Test_Key_Minimum_32_Bytes_Required_For_JWT" \
+            -e Jwt__Issuer="https://localhost:7000" \
+            -e Jwt__Audience="https://localhost:7000" \
             --name webapi-fuzz \
             ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}
 
@@ -438,6 +441,9 @@ jobs:
             -e ASPNETCORE_ENVIRONMENT=Development \
             -e UseInMemoryDatabase=true \
             -e ConnectionStrings__DefaultConnection="unused" \
+            -e Jwt__Key="CI_Test_Key_Minimum_32_Bytes_Required_For_JWT" \
+            -e Jwt__Issuer="https://localhost:7000" \
+            -e Jwt__Audience="https://localhost:7000" \
             --name webapi \
             ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}
 
