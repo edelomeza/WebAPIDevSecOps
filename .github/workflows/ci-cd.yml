@@ -293,6 +293,8 @@ jobs:
         run: |
           docker run -d -p 8080:8080 \
             -e ASPNETCORE_ENVIRONMENT=Development \
+            -e UseInMemoryDatabase=true \
+            -e ConnectionStrings__DefaultConnection="unused" \
             --name webapi-fuzz \
             ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}
 
@@ -434,6 +436,8 @@ jobs:
         run: |
           docker run -d -p 8080:8080 \
             -e ASPNETCORE_ENVIRONMENT=Development \
+            -e UseInMemoryDatabase=true \
+            -e ConnectionStrings__DefaultConnection="unused" \
             --name webapi \
             ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}
 
