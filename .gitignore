@@ -67,3 +67,6 @@ Thumbs.db
 # Generated artifacts
 artifacts/
 pr-body*.md
+
+# OpenCode
+.opencode/
