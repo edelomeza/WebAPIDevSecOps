@@ -307,11 +307,19 @@ jobs:
       - name: Download OpenAPI spec
         run: |
           mkdir -p fuzzing
-          for i in $(seq 1 10); do
-            curl -sf http://localhost:8080/openapi/v1.json > fuzzing/openapi.json && break
-            sleep 2
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:8080/openapi/v1.json -o fuzzing/openapi.json; then
+              SIZE=$(wc -c < fuzzing/openapi.json)
+              if [ "$SIZE" -gt 100 ]; then
+                echo "OpenAPI spec downloaded (${SIZE} bytes)"
+                exit 0
+              fi
+            fi
+            echo "Attempt $i: OpenAPI not ready, waiting..."
+            sleep 3
           done
-          echo "OpenAPI spec downloaded ($(wc -c < fuzzing/openapi.json) bytes)"
+          echo "ERROR: Failed to download OpenAPI spec"
+          exit 1
 
       - name: Generate RESTler config
         run: |
@@ -373,6 +381,7 @@ jobs:
       - name: Upload RESTler report
         if: always()
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: restler-report
           path: fuzzing/RestlerResults/
@@ -398,6 +407,7 @@ jobs:
       - name: Run API container
         run: |
           docker run -d -p 8080:8080 \
+            -e ASPNETCORE_ENVIRONMENT=Development \
             --name webapi \
             ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}
 
