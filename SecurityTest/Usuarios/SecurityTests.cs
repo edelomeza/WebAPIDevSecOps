@@ -330,5 +330,43 @@ namespace SecurityTest.Usuarios
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Contains("no-store", response.Headers.CacheControl?.ToString() ?? "");
         }
+
+        // 17 — BUSCAR SIN TEXTO
+        [Fact]
+        public async Task Should_Reject_Search_Without_Texto()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/buscar");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+            var response = await _client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        // 18 — BUSCAR CON TEXTO VACÍO
+        [Fact]
+        public async Task Should_Reject_Search_With_Empty_Texto()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/buscar?texto=");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+            var response = await _client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        // 19 — BUSCAR CON ROL NO ADMIN
+        [Fact]
+        public async Task Should_Reject_Search_With_NonAdmin_Token()
+        {
+            var userToken = TokenHelper.GenerateTokenWithRole(JwtKey, JwtIssuer, JwtAudience, "User");
+
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/buscar?texto=test");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userToken);
+
+            var response = await _client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
     }
 }

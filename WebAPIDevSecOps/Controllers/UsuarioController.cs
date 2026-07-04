@@ -1,7 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using WebAPIDevSecOps.Dto;
 using WebAPIDevSecOps.Interfaces;
 using WebAPIDevSecOps.Models;
@@ -42,6 +42,32 @@ public class UsuarioController : ControllerBase
     public async Task<ActionResult<PagedResult<SegUsuarioDto>>> GetAll([FromQuery] QueryParams? queryParams = null)
     {
         var usuarios = await _usuarioService.GetAllAsync(queryParams);
+        return Ok(usuarios);
+    }
+
+    /// <summary>
+    /// Busca usuarios por nombre (búsqueda parcial, case-insensitive).
+    /// </summary>
+    /// <param name="texto">Texto a buscar en el nombre.</param>
+    /// <param name="queryParams">Parámetros de paginación.</param>
+    /// <returns>Lista paginada de usuarios que coinciden.</returns>
+    /// <response code="200">Resultados de búsqueda.</response>
+    /// <response code="400">Texto de búsqueda vacío.</response>
+    /// <response code="401">No autenticado.</response>
+    /// <response code="403">No tiene permisos de administrador.</response>
+    [HttpGet("buscar")]
+    [Authorize(Policy = "AdminOnly")]
+    [ResponseCache(NoStore = true)]
+    [ProducesResponseType(typeof(PagedResult<SegUsuarioDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<SegUsuarioDto>>> SearchByName([FromQuery][StringLength(50)] string texto, [FromQuery] QueryParams? queryParams = null)
+    {
+        if (string.IsNullOrWhiteSpace(texto))
+            return BadRequest("El texto de búsqueda es requerido.");
+
+        var usuarios = await _usuarioService.SearchByNameAsync(texto, queryParams);
         return Ok(usuarios);
     }
 
