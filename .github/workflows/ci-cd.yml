@@ -299,7 +299,7 @@ jobs:
       - name: Wait for API to be healthy
         run: |
           for i in $(seq 1 30); do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health/ready)
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health/ready || echo "000")
             if [ "$STATUS" = "200" ]; then
               echo "API healthy (HTTP $STATUS)"
               break
@@ -308,6 +308,12 @@ jobs:
             sleep 2
           done
           sleep 5
+          FINAL=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health/ready || echo "000")
+          if [ "$FINAL" != "200" ]; then
+            echo "ERROR: API failed to become healthy after 30 attempts (HTTP $FINAL)"
+            docker logs webapi-fuzz 2>&1 || true
+            exit 1
+          fi
 
       - name: Debug OpenAPI endpoint
         continue-on-error: true
@@ -434,10 +440,20 @@ jobs:
       - name: Wait for API to be healthy
         run: |
           for i in $(seq 1 30); do
-            curl -sf http://localhost:8080/health/ready && break
+            if curl -sf http://localhost:8080/health/ready 2>/dev/null; then
+              echo "API healthy on attempt $i"
+              break
+            fi
+            echo "Attempt $i: API not ready"
             sleep 2
           done
           sleep 5
+          FINAL=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health/ready || echo "000")
+          if [ "$FINAL" != "200" ]; then
+            echo "ERROR: API failed to become healthy after 30 attempts (HTTP $FINAL)"
+            docker logs webapi 2>&1 || true
+            exit 1
+          fi
 
       - name: ZAP API Scan
         continue-on-error: true
