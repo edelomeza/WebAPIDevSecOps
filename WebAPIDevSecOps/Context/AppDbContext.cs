@@ -32,5 +32,6 @@ namespace WebAPIDevSecOps.Context
 
         public DbSet<SegUsuario> SegUsuario { get; set; } = default!;
         public DbSet<EmpEmpleado> EmpEmpleado { get; set; } = default!;
+        public DbSet<SegTokenBlacklist> SegTokenBlacklist { get; set; } = default!;
     }
 }

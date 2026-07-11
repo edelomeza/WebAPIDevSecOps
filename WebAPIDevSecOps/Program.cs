@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using FluentValidation;
 using Scalar.AspNetCore;
@@ -82,8 +84,9 @@ if (useInMemory)
 }
 else
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("DefaultConnection no configurada");
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (string.IsNullOrWhiteSpace(connectionString))
+        throw new InvalidOperationException("DefaultConnection no configurada");
 
     var dbUser = builder.Configuration["DB_USER"] ?? builder.Configuration["DbUser"];
     var dbPassword = builder.Configuration["DB_PASSWORD"] ?? builder.Configuration["DbPassword"];
@@ -112,7 +115,8 @@ else
 }
 
 
-var healthChecks = builder.Services.AddHealthChecks();
+var healthChecks = builder.Services.AddHealthChecks()
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "self" });
 
 if (!useInMemory)
 {
@@ -131,6 +135,13 @@ if (builder.Environment.IsDevelopment())
         options.MaximumHistoryEntriesPerEndpoint(50);
     })
     .AddInMemoryStorage();
+}
+
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+    Log.Information("Using PORT env var: {Port}", port);
 }
 
 builder.WebHost.ConfigureKestrel(options =>
@@ -217,12 +228,25 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
+static string GetAllowedOrigin(IConfiguration config)
+{
+    var origin = config["Cors:AllowedOrigin"];
+    if (!string.IsNullOrWhiteSpace(origin))
+        return origin;
+
+    origin = Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGIN");
+    if (!string.IsNullOrWhiteSpace(origin))
+        return origin;
+
+    return "https://localhost:5097";
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("SecurePolicy",
         policy =>
         {
-            policy.WithOrigins("https://localhost:5097")
+            policy.WithOrigins(GetAllowedOrigin(builder.Configuration))
            .AllowAnyHeader()
            .AllowAnyMethod()
            .AllowCredentials();
@@ -250,6 +274,13 @@ builder.Services.AddScoped<ITipoEmpleadoService, TipoEmpleadoService>();
 
 builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
 builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddResponseCompression(options =>
 {
     options.EnableForHttps = true;
@@ -281,6 +312,23 @@ builder.Services.AddOpenApi(options =>
 
 var app = builder.Build();
 
+if (!useInMemory)
+{
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        ctx.Database.Migrate();
+        Log.Information("Migraciones EF aplicadas correctamente");
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Error al aplicar migraciones EF — la app continuará");
+    }
+}
+
+TokenBlacklist.Initialize(app.Services.GetRequiredService<IServiceScopeFactory>());
+
 if (app.Environment.IsDevelopment())
 {
     var warmupSw = Stopwatch.StartNew();
@@ -303,6 +351,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseCors("SecurePolicy");
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
 app.UseMiddleware<WebAPIDevSecOps.Middleware.RequestTimeoutMiddleware>();
