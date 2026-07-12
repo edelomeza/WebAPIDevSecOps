@@ -1,0 +1,44 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "do-droplets": {
+      "type": "remote",
+      "url": "https://droplets.mcp.digitalocean.com/mcp",
+      "headers": {
+        "Authorization": "Bearer {env:DIGITALOCEAN_API_TOKEN}"
+      }
+    },
+    "do-apps": {
+      "type": "remote",
+      "url": "https://apps.mcp.digitalocean.com/mcp",
+      "headers": {
+        "Authorization": "Bearer {env:DIGITALOCEAN_API_TOKEN}"
+      }
+    },
+    "do-databases": {
+      "type": "remote",
+      "url": "https://databases.mcp.digitalocean.com/mcp",
+      "headers": {
+        "Authorization": "Bearer {env:DIGITALOCEAN_API_TOKEN}"
+      }
+    },
+    "do-doks": {
+      "type": "remote",
+      "url": "https://doks.mcp.digitalocean.com/mcp",
+      "headers": {
+        "Authorization": "Bearer {env:DIGITALOCEAN_API_TOKEN}"
+      }
+    },
+    "do-spaces": {
+      "type": "remote",
+      "url": "https://spaces.mcp.digitalocean.com/mcp",
+      "headers": {
+        "Authorization": "Bearer {env:DIGITALOCEAN_API_TOKEN}"
+      }
+    },
+    "do-docs": {
+      "type": "remote",
+      "url": "https://docs.mcp.digitalocean.com/mcp"
+    }
+  }
+}
