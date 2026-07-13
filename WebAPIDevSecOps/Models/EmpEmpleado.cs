@@ -10,7 +10,7 @@ namespace WebAPIDevSecOps.Models
         public int id { get; set; }
 
         [StringLength(50)]
-        public string strNombre { get; set; }
+        public string strNombre { get; set; } = null!;
 
         [StringLength(50)]
         public string? strAPaterno { get; set; }

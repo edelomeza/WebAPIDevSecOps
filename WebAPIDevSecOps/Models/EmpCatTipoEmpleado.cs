@@ -8,10 +8,10 @@ namespace WebAPIDevSecOps.Models
         public int id { get; set; }
 
         [StringLength(50)]
-        public string strValor { get; set; }
+        public string strValor { get; set; } = null!;
 
         [StringLength(150)]
-        public string strDescripcion { get; set; }
+        public string strDescripcion { get; set; } = null!;
 
     }
 }

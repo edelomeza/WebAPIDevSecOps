@@ -11,7 +11,7 @@ namespace WebAPIDevSecOps.Models
 
         [Required]
         [StringLength(100)]
-        public string strNombreCliente { get; set; }
+        public string strNombreCliente { get; set; } = null!;
 
         [StringLength(200)]
         public string? strDireccionCliente { get; set; }
@@ -21,10 +21,10 @@ namespace WebAPIDevSecOps.Models
 
         [Required]
         [StringLength(100)]
-        public string strCorreoElectronico { get; set; }
+        public string strCorreoElectronico { get; set; } = null!;
 
         [Required]
         [StringLength(10)]
-        public string strNumeroTelefono { get; set; }
+        public string strNumeroTelefono { get; set; } = null!;
     }
 }

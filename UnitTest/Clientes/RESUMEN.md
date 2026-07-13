@@ -87,7 +87,7 @@
 | `Update_ReturnsBadRequest_WithCorrectErrorMessage_IdMismatch` | Mensaje error | "El ID del cliente no coincide." |
 | `Update_ReturnsBadRequest_WhenCorreoAlreadyExists` | Otro cliente con ese correo | BadRequestObjectResult |
 | `Update_ReturnsNotFound_WhenClienteDoesNotExist` | ID inexistente | NotFoundResult |
-| `Update_ThrowsDbUpdateConcurrencyException_WhenRowVersionMismatch` | RowVersion incorrecto | DbUpdateConcurrencyException |
+| `Update_ReturnsConflict_WhenRowVersionMismatch` | RowVersion incorrecto | ConflictResult |
 
 ## DELETE /api/v1.0/cliente/{id} (`Delete`) — 8 tests
 
@@ -100,7 +100,7 @@
 | `Delete_ReturnsBadRequest_WithCorrectErrorMessage_IdMismatch` | Mensaje error | "El ID de la ruta no coincide con el ID del cuerpo." |
 | `Delete_ReturnsNotFound_WhenClienteDoesNotExist` | ID inexistente | NotFoundResult |
 | `Delete_ReturnsBadRequest_WhenIdMismatch_BeforeCheckingExistence` | ID mismatch sin cliente | BadRequestObjectResult (se valida antes que existencia) |
-| `Delete_ThrowsDbUpdateConcurrencyException_WhenRowVersionMismatch` | RowVersion incorrecto | DbUpdateConcurrencyException |
+| `Delete_ReturnsConflict_WhenRowVersionMismatch` | RowVersion incorrecto | ConflictResult |
 
 ---
 

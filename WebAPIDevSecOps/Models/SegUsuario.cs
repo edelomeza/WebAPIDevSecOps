@@ -10,13 +10,13 @@ namespace WebAPIDevSecOps.Models
         public int id { get; set; }
 
         [StringLength(50)]
-        public string strNombre { get; set; }
+        public string strNombre { get; set; } = null!;
 
         [StringLength(200)]
-        public string strPWD { get; set; }
+        public string strPWD { get; set; } = null!;
 
         [StringLength(50)]
-        public string strCorreoElectronico { get; set; }
+        public string strCorreoElectronico { get; set; } = null!;
 
         public DateTime? dteFechaRegistro { get; set; }
 

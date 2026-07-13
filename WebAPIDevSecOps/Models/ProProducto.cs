@@ -11,7 +11,7 @@ namespace WebAPIDevSecOps.Models
 
         [Required]
         [StringLength(50)]
-        public string strNombreProducto { get; set; }
+        public string strNombreProducto { get; set; } = null!;
 
         [StringLength(300)]
         public string? strURLImagen { get; set; }
