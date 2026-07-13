@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -8,22 +8,17 @@ using UnitTest.Common;
 using WebAPIDevSecOps.Controllers;
 using WebAPIDevSecOps.Context;
 using WebAPIDevSecOps.Dto;
-using WebAPIDevSecOps.Interfaces;
 using WebAPIDevSecOps.Models;
 using WebAPIDevSecOps.Services;
 
-namespace UnitTest.Usuarios
+namespace UnitTest.Producto
 {
     public class DeleteTests
     {
-        private readonly Mock<IPasswordHasherService> _hasherMock;
         private readonly DbResilienceService _dbResilience;
-        private const string FakeHash = "$argon2id$v=19$m=16384,t=2,p=1$test$hash";
 
         public DeleteTests()
         {
-            _hasherMock = new Mock<IPasswordHasherService>();
-            _hasherMock.Setup(h => h.HashPassword(It.IsAny<string>())).Returns(FakeHash);
             _dbResilience = CreateDbResilience();
         }
 
@@ -34,28 +29,28 @@ namespace UnitTest.Usuarios
             return new DbResilienceService(options, logger.Object);
         }
 
-        private UsuarioController CreateController(AppDbContext context)
+        private ProductoController CreateController(AppDbContext context)
         {
-            return new UsuarioController(new UsuarioService(context, _hasherMock.Object, _dbResilience));
+            return new ProductoController(new ProductoService(context, _dbResilience));
         }
 
-        private static SegUsuario CreateUser(string nombre = "usuario", string email = "usuario@test.com")
+        private static ProProducto CreateProducto(string nombre = "Producto Test")
         {
-            return new SegUsuario
+            return new ProProducto
             {
-                strNombre = nombre,
-                strCorreoElectronico = email,
-                strPWD = FakeHash,
-                RowVersion = new byte[] { 1, 0, 0, 0 }
+                strNombreProducto = nombre,
+                intNumeroExistencia = 10,
+                decPrecio = 99.99m,
+                RowVersion = new byte[] { 1, 0, 0, 0 },
             };
         }
 
-        private static UsuarioDeleteDto CreateDeleteDto(int id, byte[]? rowVersion = null)
+        private static ProductoDeleteDto CreateDeleteDto(int id, byte[]? rowVersion = null)
         {
-            return new UsuarioDeleteDto
+            return new ProductoDeleteDto
             {
                 id = id,
-                RowVersion = rowVersion ?? new byte[] { 1, 0, 0, 0 }
+                RowVersion = rowVersion ?? new byte[] { 1, 0, 0, 0 },
             };
         }
 
@@ -65,50 +60,50 @@ namespace UnitTest.Usuarios
         public async Task Delete_ReturnsOk_WhenSuccessful()
         {
             var context = DbContextMock.GetDbContext();
-            context.SegUsuario.Add(CreateUser());
+            context.ProProducto.Add(CreateProducto());
             await context.SaveChangesAsync();
 
-            var user = context.SegUsuario.First();
+            var producto = context.ProProducto.First();
             var controller = CreateController(context);
-            var dto = CreateDeleteDto(user.id);
+            var dto = CreateDeleteDto(producto.id);
 
-            var result = await controller.Delete(user.id, dto);
+            var result = await controller.Delete(producto.id, dto);
 
             result.Should().BeOfType<OkResult>();
         }
 
         [Fact]
-        public async Task Delete_RemovesUserFromDatabase()
+        public async Task Delete_RemovesProductoFromDatabase()
         {
             var context = DbContextMock.GetDbContext();
-            context.SegUsuario.Add(CreateUser());
+            context.ProProducto.Add(CreateProducto());
             await context.SaveChangesAsync();
 
-            var user = context.SegUsuario.First();
+            var producto = context.ProProducto.First();
             var controller = CreateController(context);
-            var dto = CreateDeleteDto(user.id);
+            var dto = CreateDeleteDto(producto.id);
 
-            await controller.Delete(user.id, dto);
+            await controller.Delete(producto.id, dto);
 
-            context.SegUsuario.Count().Should().Be(0);
+            context.ProProducto.Count().Should().Be(0);
         }
 
         [Fact]
-        public async Task Delete_RemovesOnlyTargetUser()
+        public async Task Delete_RemovesOnlyTargetProducto()
         {
             var context = DbContextMock.GetDbContext();
-            context.SegUsuario.Add(CreateUser(nombre: "user1", email: "u1@test.com"));
-            context.SegUsuario.Add(CreateUser(nombre: "user2", email: "u2@test.com"));
+            context.ProProducto.Add(CreateProducto(nombre: "producto1"));
+            context.ProProducto.Add(CreateProducto(nombre: "producto2"));
             await context.SaveChangesAsync();
 
-            var target = context.SegUsuario.First(u => u.strNombre == "user1");
+            var target = context.ProProducto.First(p => p.strNombreProducto == "producto1");
             var controller = CreateController(context);
             var dto = CreateDeleteDto(target.id);
 
             await controller.Delete(target.id, dto);
 
-            context.SegUsuario.Count().Should().Be(1);
-            context.SegUsuario.Single().strNombre.Should().Be("user2");
+            context.ProProducto.Count().Should().Be(1);
+            context.ProProducto.Single().strNombreProducto.Should().Be("producto2");
         }
 
         // ============ Error Cases ============
@@ -117,14 +112,14 @@ namespace UnitTest.Usuarios
         public async Task Delete_ReturnsBadRequest_WhenIdMismatch()
         {
             var context = DbContextMock.GetDbContext();
-            context.SegUsuario.Add(CreateUser());
+            context.ProProducto.Add(CreateProducto());
             await context.SaveChangesAsync();
 
-            var user = context.SegUsuario.First();
+            var producto = context.ProProducto.First();
             var controller = CreateController(context);
             var dto = CreateDeleteDto(id: 999);
 
-            var result = await controller.Delete(user.id, dto);
+            var result = await controller.Delete(producto.id, dto);
 
             result.Should().BeOfType<BadRequestObjectResult>();
         }
@@ -133,21 +128,21 @@ namespace UnitTest.Usuarios
         public async Task Delete_ReturnsBadRequest_WithCorrectErrorMessage_IdMismatch()
         {
             var context = DbContextMock.GetDbContext();
-            context.SegUsuario.Add(CreateUser());
+            context.ProProducto.Add(CreateProducto());
             await context.SaveChangesAsync();
 
-            var user = context.SegUsuario.First();
+            var producto = context.ProProducto.First();
             var controller = CreateController(context);
             var dto = CreateDeleteDto(id: 999);
 
-            var result = await controller.Delete(user.id, dto);
+            var result = await controller.Delete(producto.id, dto);
 
             var badRequest = result as BadRequestObjectResult;
             badRequest!.Value.Should().Be("El ID de la ruta no coincide con el ID del cuerpo.");
         }
 
         [Fact]
-        public async Task Delete_ReturnsNotFound_WhenUserDoesNotExist()
+        public async Task Delete_ReturnsNotFound_WhenProductoDoesNotExist()
         {
             var context = DbContextMock.GetDbContext();
             var controller = CreateController(context);
@@ -176,15 +171,15 @@ namespace UnitTest.Usuarios
         public async Task Delete_ReturnsConflict_WhenRowVersionMismatch()
         {
             var context = DbContextMock.GetDbContext();
-            context.SegUsuario.Add(CreateUser());
+            context.ProProducto.Add(CreateProducto());
             await context.SaveChangesAsync();
 
-            var user = context.SegUsuario.First();
+            var producto = context.ProProducto.First();
             var controller = CreateController(context);
             var wrongRowVersion = new byte[] { 9, 9, 9 };
-            var dto = CreateDeleteDto(user.id, rowVersion: wrongRowVersion);
+            var dto = CreateDeleteDto(producto.id, rowVersion: wrongRowVersion);
 
-            var result = await controller.Delete(user.id, dto);
+            var result = await controller.Delete(producto.id, dto);
 
             result.Should().BeOfType<ConflictResult>();
         }

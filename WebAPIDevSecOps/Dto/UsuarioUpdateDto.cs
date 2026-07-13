@@ -9,7 +9,7 @@ namespace WebAPIDevSecOps.Dto
         [Required]
         [StringLength(50)]
         [RegularExpression(@"^[a-zA-Z0-9_ ]+$")]
-        public string strNombre { get; set; }
+        public string strNombre { get; set; } = null!;
 
         //[Required]
         //[MinLength(8)]
@@ -18,9 +18,9 @@ namespace WebAPIDevSecOps.Dto
         [Required]
         [StringLength(50)]
         [EmailAddress]
-        public string strCorreoElectronico { get; set; }
+        public string strCorreoElectronico { get; set; } = null!;
 
         [Timestamp]
-        public byte[] RowVersion { get; set; }
+        public byte[] RowVersion { get; set; } = null!;
     }
 }

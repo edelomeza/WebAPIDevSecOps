@@ -120,5 +120,64 @@ namespace UnitTest.Common
                 RowVersion = rowVersion ?? new byte[] { 1, 0, 0, 0 }
             };
         }
+
+        public static ProProducto CreateProducto(string? nombre = null, int existencia = 10, decimal precio = 99.99m)
+        {
+            return new ProProducto
+            {
+                strNombreProducto = nombre ?? $"producto{Guid.NewGuid():N}"[..20],
+                strURLImagen = null,
+                strDescripcion = "Descripción de prueba",
+                intNumeroExistencia = existencia,
+                decPrecio = precio,
+                RowVersion = new byte[] { 1, 0, 0, 0 },
+            };
+        }
+
+        public static List<ProProducto> CreateProductos(int count)
+        {
+            return Enumerable.Range(1, count)
+                .Select(i => new ProProducto
+                {
+                    strNombreProducto = $"producto{i}",
+                    strURLImagen = null,
+                    strDescripcion = $"Descripción {i}",
+                    intNumeroExistencia = i * 10,
+                    decPrecio = i * 9.99m,
+                    RowVersion = new byte[] { 1, 0, 0, 0 },
+                })
+                .ToList();
+        }
+
+        public static ProductoCreateDto CreateProductoCreateDto(string? nombre = null, int existencia = 10, decimal precio = 99.99m)
+        {
+            return new ProductoCreateDto
+            {
+                strNombreProducto = nombre ?? $"testproducto{Guid.NewGuid():N}"[..20],
+                intNumeroExistencia = existencia,
+                decPrecio = precio,
+            };
+        }
+
+        public static ProductoUpdateDto CreateProductoUpdateDto(int id, string? nombre = null, int existencia = 20, decimal precio = 199.99m, byte[]? rowVersion = null)
+        {
+            return new ProductoUpdateDto
+            {
+                id = id,
+                strNombreProducto = nombre ?? $"updatedproducto{Guid.NewGuid():N}"[..20],
+                intNumeroExistencia = existencia,
+                decPrecio = precio,
+                RowVersion = rowVersion ?? new byte[] { 1, 0, 0, 0 },
+            };
+        }
+
+        public static ProductoDeleteDto CreateProductoDeleteDto(int id, byte[]? rowVersion = null)
+        {
+            return new ProductoDeleteDto
+            {
+                id = id,
+                RowVersion = rowVersion ?? new byte[] { 1, 0, 0, 0 },
+            };
+        }
     }
 }

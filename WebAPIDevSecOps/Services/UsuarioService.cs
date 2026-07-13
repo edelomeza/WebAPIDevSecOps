@@ -177,7 +177,11 @@ namespace WebAPIDevSecOps.Services
                 throw new KeyNotFoundException("Usuario no encontrado.");
             }
 
-            _context.Entry(segUsuario).Property("RowVersion").OriginalValue = dto.RowVersion;
+            if (dto.RowVersion is { Length: > 0 })
+            {
+                _context.Entry(segUsuario).Property("RowVersion").OriginalValue = dto.RowVersion;
+            }
+
             _context.SegUsuario.Remove(segUsuario);
 
             await _dbResilience.SaveChangesAsync(_context);

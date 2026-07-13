@@ -289,9 +289,12 @@ jobs:
           pip install pyjwt
           python3 fuzzing/generate_token.py
 
+      - name: Cleanup previous container
+        run: docker rm -f webapi-fuzz 2>/dev/null || true
+
       - name: Run API container (Development mode for OpenAPI)
         run: |
-          docker run -d -p 8080:8080 \
+          docker run -d --rm -p 8080:8080 \
             -e ASPNETCORE_ENVIRONMENT=Development \
             -e UseInMemoryDatabase=true \
             -e ConnectionStrings__DefaultConnection="unused" \
@@ -435,9 +438,12 @@ jobs:
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             ${{ vars.REGISTRY_IMAGE || 'edelomeza/webapidevsecops' }}:${{ github.sha }}
 
+      - name: Cleanup previous container
+        run: docker rm -f webapi 2>/dev/null || true
+
       - name: Run API container
         run: |
-          docker run -d -p 8080:8080 \
+          docker run -d --rm -p 8080:8080 \
             -e ASPNETCORE_ENVIRONMENT=Development \
             -e UseInMemoryDatabase=true \
             -e ConnectionStrings__DefaultConnection="unused" \

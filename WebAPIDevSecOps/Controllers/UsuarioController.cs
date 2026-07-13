@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using WebAPIDevSecOps.Dto;
 using WebAPIDevSecOps.Interfaces;
@@ -113,6 +114,7 @@ public class UsuarioController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Update(int id, UsuarioUpdateDto dto)
     {
         try
@@ -127,6 +129,10 @@ public class UsuarioController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(ex.Message);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict();
         }
     }
 
@@ -175,6 +181,7 @@ public class UsuarioController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(int id, UsuarioDeleteDto dto)
     {
         try
@@ -188,6 +195,10 @@ public class UsuarioController : ControllerBase
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict();
         }
     }
 }

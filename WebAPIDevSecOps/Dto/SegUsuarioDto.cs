@@ -6,13 +6,13 @@ namespace WebAPIDevSecOps.Dto
     {
         public int id { get; set; }
 
-        public string strNombre { get; set; }
+        public string strNombre { get; set; } = null!;
 
-        public string strCorreoElectronico { get; set; }
+        public string strCorreoElectronico { get; set; } = null!;
 
         //public DateTime? dteFechaRegistro { get; set; }
 
         [Timestamp]
-        public byte[] RowVersion { get; set; }
+        public byte[] RowVersion { get; set; } = null!;
     }
 }

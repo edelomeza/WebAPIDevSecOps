@@ -271,7 +271,7 @@ namespace UnitTest.Clientes
         // ============ Concurrency ============
 
         [Fact]
-        public async Task Update_ThrowsDbUpdateConcurrencyException_WhenRowVersionMismatch()
+        public async Task Update_ReturnsConflict_WhenRowVersionMismatch()
         {
             var context = DbContextMock.GetDbContext();
             context.CliCliente.Add(CreateSeedCliente());
@@ -282,8 +282,9 @@ namespace UnitTest.Clientes
             var wrongRowVersion = new byte[] { 9, 9, 9 };
             var dto = CreateUpdateDto(cliente.id, rowVersion: wrongRowVersion);
 
-            await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
-                controller.Update(cliente.id, dto));
+            var result = await controller.Update(cliente.id, dto);
+
+            result.Should().BeOfType<ConflictResult>();
         }
     }
 }
