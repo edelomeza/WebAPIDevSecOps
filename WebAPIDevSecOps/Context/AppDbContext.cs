@@ -37,11 +37,16 @@ namespace WebAPIDevSecOps.Context
                 .HasIndex(c => c.strCorreoElectronico)
                 .IsUnique()
                 .HasDatabaseName("IX_CliCliente_strCorreoElectronico");
+
+            modelBuilder.Entity<ProProducto>()
+                .HasIndex(p => p.strNombreProducto)
+                .HasDatabaseName("IX_ProProducto_strNombreProducto");
         }
 
         public DbSet<CliCliente> CliCliente { get; set; } = default!;
         public DbSet<SegUsuario> SegUsuario { get; set; } = default!;
         public DbSet<EmpEmpleado> EmpEmpleado { get; set; } = default!;
+        public DbSet<ProProducto> ProProducto { get; set; } = default!;
         public DbSet<SegTokenBlacklist> SegTokenBlacklist { get; set; } = default!;
     }
 }

@@ -10,57 +10,57 @@ using WebAPIDevSecOps.Models;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
-public class ClienteController : ControllerBase
+public class ProductoController : ControllerBase
 {
-    private readonly IClienteService _clienteService;
+    private readonly IProductoService _productoService;
 
-    public ClienteController(IClienteService clienteService)
+    public ProductoController(IProductoService productoService)
     {
-        _clienteService = clienteService;
+        _productoService = productoService;
     }
 
     [HttpGet]
     [Authorize(Policy = "AdminOnly")]
     [ResponseCache(NoStore = true)]
-    [ProducesResponseType(typeof(PagedResult<CliClienteDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<ProProductoDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<PagedResult<CliClienteDto>>> GetAll([FromQuery] QueryParams? queryParams = null)
+    public async Task<ActionResult<PagedResult<ProProductoDto>>> GetAll([FromQuery] QueryParams? queryParams = null)
     {
-        var clientes = await _clienteService.GetAllAsync(queryParams);
-        return Ok(clientes);
+        var productos = await _productoService.GetAllAsync(queryParams);
+        return Ok(productos);
     }
 
     [HttpGet("buscar")]
     [Authorize(Policy = "AdminOnly")]
     [ResponseCache(NoStore = true)]
-    [ProducesResponseType(typeof(PagedResult<CliClienteDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<ProProductoDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<PagedResult<CliClienteDto>>> SearchByName([FromQuery][StringLength(100)] string texto, [FromQuery] QueryParams? queryParams = null)
+    public async Task<ActionResult<PagedResult<ProProductoDto>>> SearchByName([FromQuery][StringLength(50)] string texto, [FromQuery] QueryParams? queryParams = null)
     {
         if (string.IsNullOrWhiteSpace(texto))
             return BadRequest("El texto de búsqueda es requerido.");
 
-        var clientes = await _clienteService.SearchByNameAsync(texto, queryParams);
-        return Ok(clientes);
+        var productos = await _productoService.SearchByNameAsync(texto, queryParams);
+        return Ok(productos);
     }
 
     [HttpGet("{id}")]
     [Authorize(Policy = "AdminOnly")]
-    [ProducesResponseType(typeof(CliClienteDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProProductoDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CliClienteDto>> Get(int id)
+    public async Task<ActionResult<ProProductoDto>> Get(int id)
     {
-        var cliente = await _clienteService.GetByIdAsync(id);
+        var producto = await _productoService.GetByIdAsync(id);
 
-        if (cliente == null)
+        if (producto == null)
             return NotFound();
 
-        return Ok(cliente);
+        return Ok(producto);
     }
 
     [HttpPut("{id}")]
@@ -71,11 +71,11 @@ public class ClienteController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Update(int id, CliClienteUpdateDto dto)
+    public async Task<IActionResult> Update(int id, ProductoUpdateDto dto)
     {
         try
         {
-            await _clienteService.UpdateAsync(id, dto);
+            await _productoService.UpdateAsync(id, dto);
             return NoContent();
         }
         catch (KeyNotFoundException)
@@ -94,15 +94,15 @@ public class ClienteController : ControllerBase
 
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]
-    [ProducesResponseType(typeof(CliClienteDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProProductoDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<CliClienteDto>> Create(CliClienteCreateDto dto)
+    public async Task<ActionResult<ProProductoDto>> Create(ProductoCreateDto dto)
     {
         try
         {
-            var result = await _clienteService.CreateAsync(dto);
+            var result = await _productoService.CreateAsync(dto);
             return CreatedAtAction(nameof(Get), new { id = result.id }, result);
         }
         catch (ArgumentException ex)
@@ -119,14 +119,14 @@ public class ClienteController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Delete(int id, CliClienteDeleteDto dto)
+    public async Task<IActionResult> Delete(int id, ProductoDeleteDto dto)
     {
         try
         {
             if (id != dto.id)
                 return BadRequest("El ID de la ruta no coincide con el ID del cuerpo.");
 
-            await _clienteService.DeleteAsync(id, dto);
+            await _productoService.DeleteAsync(id, dto);
             return Ok();
         }
         catch (KeyNotFoundException)

@@ -1,12 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace WebAPIDevSecOps.Dto
 {
-    public class UsuarioDeleteDto
+    public class ProductoDeleteDto
     {
         public int id { get; set; }
 
-        ////comentar
         [Timestamp]
         public byte[] RowVersion { get; set; } = null!;
     }

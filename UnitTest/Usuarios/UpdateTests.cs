@@ -279,7 +279,7 @@ namespace UnitTest.Usuarios
         // ============ Concurrency ============
 
         [Fact]
-        public async Task Update_ThrowsDbUpdateConcurrencyException_WhenRowVersionMismatch()
+        public async Task Update_ReturnsConflict_WhenRowVersionMismatch()
         {
             var context = DbContextMock.GetDbContext();
             context.SegUsuario.Add(CreateSeedUser());
@@ -290,8 +290,9 @@ namespace UnitTest.Usuarios
             var wrongRowVersion = new byte[] { 9, 9, 9 };
             var dto = CreateUpdateDto(user.id, rowVersion: wrongRowVersion);
 
-            await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
-                controller.Update(user.id, dto));
+            var result = await controller.Update(user.id, dto);
+
+            result.Should().BeOfType<ConflictResult>();
         }
     }
 }
