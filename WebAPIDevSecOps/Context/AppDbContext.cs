@@ -28,8 +28,18 @@ namespace WebAPIDevSecOps.Context
                 .WithMany()
                 .HasForeignKey(e => e.idEmpCatTipoEmpleado)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<CliCliente>()
+                .HasIndex(c => c.strNombreCliente)
+                .HasDatabaseName("IX_CliCliente_strNombreCliente");
+
+            modelBuilder.Entity<CliCliente>()
+                .HasIndex(c => c.strCorreoElectronico)
+                .IsUnique()
+                .HasDatabaseName("IX_CliCliente_strCorreoElectronico");
         }
 
+        public DbSet<CliCliente> CliCliente { get; set; } = default!;
         public DbSet<SegUsuario> SegUsuario { get; set; } = default!;
         public DbSet<EmpEmpleado> EmpEmpleado { get; set; } = default!;
         public DbSet<SegTokenBlacklist> SegTokenBlacklist { get; set; } = default!;
