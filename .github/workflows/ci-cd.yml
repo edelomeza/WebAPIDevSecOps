@@ -480,14 +480,17 @@ jobs:
             zap-api-scan.py \
               -t http://localhost:8080/openapi/v1.json \
               -f openapi \
-              -r zap-report
+              -r zap-report.html \
+              -J zap-report.json
 
       - name: Upload ZAP Report
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: dast-report
-          path: zap-report.*
+          path: |
+            zap-report.html
+            zap-report.json
 
   deploy-digitalocean:
     name: Deploy to DigitalOcean

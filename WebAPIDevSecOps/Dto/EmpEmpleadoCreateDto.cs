@@ -9,7 +9,7 @@ namespace WebAPIDevSecOps.Dto
         [Required]
         [StringLength(50)]
         [RegularExpression(@"^[a-zA-Z0-9_ ]+$")]
-        public string strNombre { get; set; }
+        public string strNombre { get; set; } = null!;
 
         [StringLength(50)]
         [RegularExpression(@"^[a-zA-ZáéíóúñÑ ]+$")]

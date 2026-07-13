@@ -7,6 +7,6 @@ namespace WebAPIDevSecOps.Dto
         public int id { get; set; }
 
         [Timestamp]
-        public byte[] RowVersion { get; set; }
+        public byte[] RowVersion { get; set; } = null!;
     }
 }

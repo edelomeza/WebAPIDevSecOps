@@ -74,7 +74,7 @@
 | `Update_ReturnsBadRequest_WithCorrectErrorMessage_IdMismatch` | Mensaje error | "El ID del usuario no coincide." |
 | `Update_ReturnsBadRequest_WhenUsernameAlreadyExists` | Otro usuario con ese nombre | BadRequestObjectResult |
 | `Update_ReturnsNotFound_WhenUserDoesNotExist` | ID inexistente | NotFoundResult |
-| `Update_ThrowsDbUpdateConcurrencyException_WhenRowVersionMismatch` | RowVersion incorrecto | DbUpdateConcurrencyException |
+| `Update_ReturnsConflict_WhenRowVersionMismatch` | RowVersion incorrecto | ConflictResult |
 
 ## DELETE /api/v1.0/Usuario/{id} (`Delete`) — 8 tests
 
@@ -87,7 +87,7 @@
 | `Delete_ReturnsBadRequest_WithCorrectErrorMessage_IdMismatch` | Mensaje error | "El ID de la ruta no coincide con el ID del cuerpo." |
 | `Delete_ReturnsNotFound_WhenUserDoesNotExist` | ID inexistente | NotFoundResult |
 | `Delete_ReturnsBadRequest_WhenIdMismatch_BeforeCheckingExistence` | ID mismatch sin usuario | BadRequestObjectResult (se valida antes que existencia) |
-| `Delete_ThrowsDbUpdateConcurrencyException_WhenRowVersionMismatch` | RowVersion incorrecto | DbUpdateConcurrencyException |
+| `Delete_ReturnsConflict_WhenRowVersionMismatch` | RowVersion incorrecto | ConflictResult |
 
 ---
 
