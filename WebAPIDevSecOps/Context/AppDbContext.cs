@@ -41,6 +41,33 @@ namespace WebAPIDevSecOps.Context
             modelBuilder.Entity<ProProducto>()
                 .HasIndex(p => p.strNombreProducto)
                 .HasDatabaseName("IX_ProProducto_strNombreProducto");
+
+            modelBuilder.Entity<VenVenta>()
+                .HasOne(v => v.CliCliente)
+                .WithMany()
+                .HasForeignKey(v => v.idCliCliente)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VenVenta>()
+                .HasOne(v => v.SegUsuario)
+                .WithMany()
+                .HasForeignKey(v => v.idSegUsuario)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VenVenta>()
+                .HasOne(v => v.VenCatEstado)
+                .WithMany()
+                .HasForeignKey(v => v.idVenCatEstado)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VenVenta>()
+                .HasIndex(v => v.strClaveVenta)
+                .IsUnique()
+                .HasDatabaseName("IX_VenVenta_strClaveVenta");
+
+            modelBuilder.Entity<VenVenta>()
+                .HasIndex(v => v.dteFechaHoraCompra)
+                .HasDatabaseName("IX_VenVenta_dteFechaHoraCompra");
         }
 
         public DbSet<CliCliente> CliCliente { get; set; } = default!;
@@ -49,5 +76,6 @@ namespace WebAPIDevSecOps.Context
         public DbSet<ProProducto> ProProducto { get; set; } = default!;
         public DbSet<SegTokenBlacklist> SegTokenBlacklist { get; set; } = default!;
         public DbSet<VenCatEstado> VenCatEstado { get; set; } = default!;
+        public DbSet<VenVenta> VenVenta { get; set; } = default!;
     }
 }

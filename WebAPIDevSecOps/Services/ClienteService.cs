@@ -76,6 +76,21 @@ namespace WebAPIDevSecOps.Services
             };
         }
 
+        public async Task<IEnumerable<CliClienteAutocompleteDto>> AutocompleteAsync(string texto, int maxResultados = 10)
+        {
+            return await _context.CliCliente
+                .AsNoTracking()
+                .Where(c => c.strNombreCliente.ToLower().Contains(texto.ToLower()))
+                .OrderBy(c => c.strNombreCliente)
+                .Take(maxResultados)
+                .Select(c => new CliClienteAutocompleteDto
+                {
+                    id = c.id,
+                    strNombreCliente = c.strNombreCliente
+                })
+                .ToListAsync();
+        }
+
         public async Task<CliClienteDto?> GetByIdAsync(int id)
         {
             return await _context.CliCliente

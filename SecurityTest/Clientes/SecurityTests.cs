@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc.Testing;
+﻿using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -81,6 +81,9 @@ namespace SecurityTest.Clientes
 
             var deleteResponse = await _client.DeleteAsync("/api/v1/cliente/1");
             Assert.Equal(HttpStatusCode.Unauthorized, deleteResponse.StatusCode);
+
+            var autoResponse = await _client.GetAsync("/api/v1/cliente/autocomplete?texto=test");
+            Assert.Equal(HttpStatusCode.Unauthorized, autoResponse.StatusCode);
         }
 
         // 2 — ROL INCORRECTO
@@ -416,7 +419,7 @@ namespace SecurityTest.Clientes
             var dto = TestDataFactory.CreateClienteCreateDto(
                 nombre: "telefonolong",
                 correo: "telefonolong@test.com",
-                telefono: "551234567890");
+                telefono: "12345678901");
 
             var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/cliente")
             {
@@ -427,5 +430,77 @@ namespace SecurityTest.Clientes
             var response = await _client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
+
+        // 23 — AUTOCOMPLETE SIN AUTENTICACIÓN
+        [Fact]
+        public async Task Should_Reject_Autocomplete_Without_Token()
+        {
+            var response = await _client.GetAsync("/api/v1/cliente/autocomplete?texto=test");
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        // 24 — AUTOCOMPLETE CON ROL INCORRECTO
+        [Fact]
+        public async Task Should_Reject_Autocomplete_With_Wrong_Role()
+        {
+            var userToken = TokenHelper.GenerateTokenWithRole(JwtKey, JwtIssuer, JwtAudience, "User");
+
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/cliente/autocomplete?texto=test");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userToken);
+
+            var response = await _client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+
+        // 25 — AUTOCOMPLETE CON TEXTO VACÍO
+        [Fact]
+        public async Task Should_Reject_Autocomplete_With_Empty_Texto()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/cliente/autocomplete?texto=");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+            var response = await _client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        // 26 — AUTOCOMPLETE RETORNA 200 CON TOKEN VÁLIDO
+        [Fact]
+        public async Task Should_Accept_Autocomplete_With_Valid_Token()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/cliente/autocomplete?texto=test");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+            var response = await _client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        // 27 — AUTOCOMPLETE RETORNA LISTA PLANA
+        [Fact]
+        public async Task Autocomplete_Returns_Flat_List()
+        {
+            var dto = TestDataFactory.CreateClienteCreateDto(
+                nombre: "AutocompleteTest",
+                correo: "autocompletetest@test.com",
+                telefono: "5512345678");
+
+            var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/cliente")
+            {
+                Content = JsonContent.Create(dto)
+            };
+            createRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+            var createResponse = await _client.SendAsync(createRequest);
+            createResponse.EnsureSuccessStatusCode();
+
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/cliente/autocomplete?texto=Auto");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+            var response = await _client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.StartsWith("[", body.Trim());
+            Assert.Contains("AutocompleteTest", body);
+        }
+        
     }
 }

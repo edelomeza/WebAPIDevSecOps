@@ -73,6 +73,36 @@ public class UsuarioController : ControllerBase
     }
 
     /// <summary>
+    /// Autocompletado de usuarios por nombre (búsqueda parcial, case-insensitive).
+    /// </summary>
+    /// <param name="texto">Texto a buscar en el nombre.</param>
+    /// <param name="maxResultados">Máximo de resultados (1-50, default 10).</param>
+    /// <returns>Lista de usuarios que coinciden para autocompletado.</returns>
+    /// <response code="200">Resultados de autocompletado.</response>
+    /// <response code="400">Texto de búsqueda vacío.</response>
+    /// <response code="401">No autenticado.</response>
+    /// <response code="403">No tiene permisos de administrador.</response>
+    [HttpGet("autocomplete")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(typeof(IEnumerable<SegUsuarioAutocompleteDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<SegUsuarioAutocompleteDto>>> Autocomplete(
+        [FromQuery][StringLength(50)] string texto,
+        [FromQuery] int maxResultados = 10)
+    {
+        if (string.IsNullOrWhiteSpace(texto))
+            return BadRequest("El texto de búsqueda es requerido.");
+
+        if (maxResultados < 1 || maxResultados > 50)
+            maxResultados = 10;
+
+        var result = await _usuarioService.AutocompleteAsync(texto, maxResultados);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Obtiene un usuario por su ID.
     /// </summary>
     /// <param name="id">Identificador único del usuario.</param>

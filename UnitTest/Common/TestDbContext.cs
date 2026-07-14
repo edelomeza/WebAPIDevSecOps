@@ -43,6 +43,14 @@ namespace UnitTest.Common
                 }
             }
 
+            foreach (var entry in ChangeTracker.Entries<VenVenta>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.RowVersion ??= new byte[] { 1, 0, 0, 0 };
+                }
+            }
+
             return base.SaveChangesAsync(cancellationToken);
         }
     }

@@ -8,6 +8,7 @@ namespace WebAPIDevSecOps.Interfaces
         Task<PagedResult<SegUsuarioDto>> GetAllAsync(QueryParams? queryParams = null);
         Task<PagedResult<SegUsuarioDto>> SearchByNameAsync(string texto, QueryParams? queryParams = null);
         Task<SegUsuarioDto?> GetByIdAsync(int id);
+        Task<IEnumerable<SegUsuarioAutocompleteDto>> AutocompleteAsync(string texto, int maxResultados = 10);
         Task<SegUsuarioDto> CreateAsync(UsuarioCreateDto dto);
         Task UpdateAsync(int id, UsuarioUpdateDto dto);
         Task DeleteAsync(int id, UsuarioDeleteDto dto);

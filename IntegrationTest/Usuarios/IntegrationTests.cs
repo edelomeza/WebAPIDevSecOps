@@ -280,8 +280,88 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task GetAll_DoesNotExposePassword()
+        // ==================== AUTOCOMPLETE ====================
+
+        [Fact]
+        public async Task Autocomplete_ReturnsMatchingUsers()
+        {
+            await CreateUserAsync("ac_eduardo");
+            await CreateUserAsync("ac_edel");
+            await CreateUserAsync("ac_maria");
+
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/autocomplete?texto=ed");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+            var response = await _client.SendAsync(request);
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var result = await response.Content.ReadFromJsonAsync<IEnumerable<SegUsuarioAutocompleteDto>>();
+            result.Should().HaveCount(2);
+            result!.Select(r => r.strNombre).Should().Contain(["ac_eduardo", "ac_edel"]);
+        }
+
+        [Fact]
+        public async Task Autocomplete_RespectsMaxResultados()
+        {
+            for (int i = 0; i < 5; i++)
+                await CreateUserAsync($"ac_max_u{i}");
+
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/autocomplete?texto=ac_max&maxResultados=2");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+            var response = await _client.SendAsync(request);
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var result = await response.Content.ReadFromJsonAsync<IEnumerable<SegUsuarioAutocompleteDto>>();
+            result.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public async Task Autocomplete_ReturnsEmpty_WhenNoMatch()
+        {
+            await CreateUserAsync("ac_nomatch");
+
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/autocomplete?texto=xyz");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+            var response = await _client.SendAsync(request);
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var result = await response.Content.ReadFromJsonAsync<IEnumerable<SegUsuarioAutocompleteDto>>();
+            result.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task Autocomplete_EmptyTexto_ReturnsBadRequest()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/autocomplete?texto=");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+            var response = await _client.SendAsync(request);
+
+            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        }
+
+        [Fact]
+        public async Task Autocomplete_DoesNotExposePassword()
+        {
+            await CreateUserAsync("ac_no_pwd");
+
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/autocomplete?texto=ac_no");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+            var response = await _client.SendAsync(request);
+
+            var json = await response.Content.ReadAsStringAsync();
+            json.Should().NotContain("strPWD");
+            json.Should().NotContain("password");
+        }
+
+        [Fact]
+        public async Task GetAll_DoesNotExposePassword()
     {
         await CreateUserAsync("getall_no_pwd");
 
