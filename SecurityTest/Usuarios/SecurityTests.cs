@@ -355,6 +355,41 @@ namespace SecurityTest.Usuarios
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
+        // 19 — AUTOCOMPLETE SIN TEXTO
+        [Fact]
+        public async Task Should_Reject_Autocomplete_With_Empty_Texto()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/autocomplete?texto=");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+            var response = await _client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        // 20 — AUTOCOMPLETE SIN AUTENTICACIÓN
+        [Fact]
+        public async Task Should_Reject_Autocomplete_Without_Token()
+        {
+            var response = await _client.GetAsync("/api/v1/usuario/autocomplete?texto=test");
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        // 21 — AUTOCOMPLETE CON ROL NO ADMIN
+        [Fact]
+        public async Task Should_Reject_Autocomplete_With_NonAdmin_Token()
+        {
+            var userToken = TokenHelper.GenerateTokenWithRole(JwtKey, JwtIssuer, JwtAudience, "User");
+
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/usuario/autocomplete?texto=test");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userToken);
+
+            var response = await _client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+
         // 19 — BUSCAR CON ROL NO ADMIN
         [Fact]
         public async Task Should_Reject_Search_With_NonAdmin_Token()

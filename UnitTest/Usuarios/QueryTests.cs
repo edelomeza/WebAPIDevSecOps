@@ -149,5 +149,74 @@ namespace UnitTest.Usuarios
             var pagedResult = okResult!.Value as PagedResult<SegUsuarioDto>;
             pagedResult!.Items.Should().HaveCount(2);
         }
+
+        // ============ GET /autocomplete ============
+
+        [Fact]
+        public async Task Autocomplete_ReturnsMatchingUsers()
+        {
+            var context = SeedUsers("Eduardo", "Edel", "Maria", "Jose");
+            var service = new UsuarioService(context, _hasherMock.Object, _dbResilience);
+
+            var result = await service.AutocompleteAsync("ed");
+
+            result.Should().HaveCount(2);
+            result.Select(r => r.strNombre).Should().BeEquivalentTo(["Edel", "Eduardo"]);
+        }
+
+        [Fact]
+        public async Task Autocomplete_RespectsMaxResultados()
+        {
+            var context = SeedUsers("admin1", "admin2", "admin3", "user1");
+            var service = new UsuarioService(context, _hasherMock.Object, _dbResilience);
+
+            var result = await service.AutocompleteAsync("admin", 2);
+
+            result.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public async Task Autocomplete_ReturnsEmpty_WhenNoMatch()
+        {
+            var context = SeedUsers("Eduardo", "Edel");
+            var service = new UsuarioService(context, _hasherMock.Object, _dbResilience);
+
+            var result = await service.AutocompleteAsync("xyz");
+
+            result.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task Autocomplete_IsCaseInsensitive()
+        {
+            var context = SeedUsers("Eduardo", "edel", "EDUARDO");
+            var service = new UsuarioService(context, _hasherMock.Object, _dbResilience);
+
+            var result = await service.AutocompleteAsync("EDUARDO");
+
+            result.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public async Task Autocomplete_SpecialChars_ReturnsMatch()
+        {
+            var context = SeedUsers("José", "Maria", "Jose");
+            var service = new UsuarioService(context, _hasherMock.Object, _dbResilience);
+
+            var result = await service.AutocompleteAsync("Jos");
+
+            result.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public async Task Autocomplete_ReturnsOrderedByName()
+        {
+            var context = SeedUsers("Zeta", "Alpha", "Beta");
+            var service = new UsuarioService(context, _hasherMock.Object, _dbResilience);
+
+            var result = await service.AutocompleteAsync("a");
+
+            result.Select(r => r.strNombre).Should().BeInAscendingOrder();
+        }
     }
 }

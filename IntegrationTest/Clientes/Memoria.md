@@ -91,6 +91,17 @@ public static class JwtTestConfig
 | 17 | `SearchByName_WithPagination_ReturnsCorrectPage` | Paginado respetado |
 | 18 | `SearchByName_EmptyTexto_ReturnsBadRequest` | texto vacío → 400 |
 
+### GET /api/v1/cliente/autocomplete (Autocomplete) — 6 pruebas
+
+| # | Prueba | Verificación |
+|---|--------|-------------|
+| 19 | `Autocomplete_ReturnsMatchingResults` | "Juan" → 2 clientes que inician con Juan |
+| 20 | `Autocomplete_ReturnsEmpty_WhenNoMatch` | Sin match → lista vacía |
+| 21 | `Autocomplete_ReturnsLimitedResults` | maxResultados=3 de 5 posibles |
+| 22 | `Autocomplete_WithoutAuth_Returns401` | Sin token → 401 |
+| 23 | `Autocomplete_WithEmptyTexto_Returns400` | texto vacío → 400 |
+| 24 | `Autocomplete_ReturnsOrderedResults` | Resultados en orden alfabético |
+
 ### POST /api/v1/cliente (Create) — 7 pruebas
 
 | # | Prueba | Verificación |
@@ -138,7 +149,7 @@ public static class JwtTestConfig
 |---|--------|-------|
 | 45 | `CreateGetUpdateGetDelete_CompleteFlow` | Create (201) → Get (200) → Update (204) → Get (200, datos cambiados) → Delete (200) → Get (404) |
 
-**Total: 43 pruebas**
+**Total: 49 pruebas**
 
 ## 5. Problemas detectados durante la implementación
 
@@ -163,7 +174,7 @@ public static class JwtTestConfig
 ## 6. Resultado de ejecución
 
 ```
-Correctas! - Con error: 0, Superado: 43, Omitido: 0, Total: 43, Duración: ~16s
+Correctas! - Con error: 0, Superado: 49, Omitido: 0, Total: 49, Duración: ~20s
 ```
 
 Todos los tests se ejecutan con el comando:
@@ -176,7 +187,8 @@ dotnet test IntegrationTest/IntegrationTest.csproj -c Release --no-build --filte
 
 | Archivo | Rol |
 |---------|-----|
-| `IntegrationTest/Clientes/IntegrationTests.cs` | Clase con 43 tests |
+| `IntegrationTest/Clientes/IntegrationTests.cs` | Clase con 43 tests (CRUD) |
+| `IntegrationTest/Clientes/AutocompleteIntegrationTests.cs` | Clase con 6 tests (autocomplete) |
 | `UnitTest/Common/JwtTestConfig.cs` | Constantes JWT compartidas |
 | `UnitTest/Common/TokenHelper.cs` | Generación de tokens JWT |
 | `UnitTest/Common/TestDataFactory.cs` | Fábrica de DTOs y entidades |

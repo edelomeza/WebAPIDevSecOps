@@ -47,6 +47,26 @@ public class ClienteController : ControllerBase
         return Ok(clientes);
     }
 
+    [HttpGet("autocomplete")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(typeof(IEnumerable<CliClienteAutocompleteDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<CliClienteAutocompleteDto>>> Autocomplete(
+        [FromQuery][StringLength(100)] string texto,
+        [FromQuery] int maxResultados = 10)
+    {
+        if (string.IsNullOrWhiteSpace(texto))
+            return BadRequest("El texto de búsqueda es requerido.");
+
+        if (maxResultados < 1 || maxResultados > 50)
+            maxResultados = 10;
+
+        var result = await _clienteService.AutocompleteAsync(texto, maxResultados);
+        return Ok(result);
+    }
+
     [HttpGet("{id}")]
     [Authorize(Policy = "AdminOnly")]
     [ProducesResponseType(typeof(CliClienteDto), StatusCodes.Status200OK)]

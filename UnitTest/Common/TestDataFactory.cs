@@ -179,5 +179,41 @@ namespace UnitTest.Common
                 RowVersion = rowVersion ?? new byte[] { 1, 0, 0, 0 },
             };
         }
+        public static VenVenta CreateVenta(int idCliCliente, int idSegUsuario, string? claveVenta = null)
+        {
+            return new VenVenta
+            {
+                idCliCliente = idCliCliente,
+                idSegUsuario = idSegUsuario,
+                idVenCatEstado = 1,
+                dteFechaHoraCompra = DateTime.UtcNow,
+                strClaveVenta = claveVenta ?? Guid.NewGuid().ToString("N")[..10],
+                RowVersion = new byte[] { 1, 0, 0, 0 },
+            };
+        }
+
+        public static List<VenVenta> CreateVentas(int count, int idCliCliente, int idSegUsuario)
+        {
+            return Enumerable.Range(1, count)
+                .Select(i => new VenVenta
+                {
+                    idCliCliente = idCliCliente,
+                    idSegUsuario = idSegUsuario,
+                    idVenCatEstado = 1,
+                    dteFechaHoraCompra = DateTime.UtcNow.AddDays(-count + i),
+                    strClaveVenta = $"CLAVE{i:D4}",
+                    RowVersion = new byte[] { 1, 0, 0, 0 },
+                })
+                .ToList();
+        }
+
+        public static VenVentaCreateDto CreateVentaCreateDto(int idCliCliente, int idSegUsuario)
+        {
+            return new VenVentaCreateDto
+            {
+                idCliCliente = idCliCliente,
+                idSegUsuario = idSegUsuario,
+            };
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,13 +12,13 @@ namespace UnitTest.Common
     {
         public static AppDbContext GetDbContext()
         {
-           
+            
             var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .EnableSensitiveDataLogging()
             .Options;
 
-            var dbContext = new TestDbContext(options); // 👈 AQUÍ
+            var dbContext = new TestDbContext(options);
             dbContext.Database.EnsureCreated();
             return dbContext;
         }
