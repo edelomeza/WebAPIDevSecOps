@@ -139,3 +139,11 @@ dotnet test IntegrationTest/IntegrationTest.csproj -c Release --no-build --filte
 | `UnitTest/Common/JwtTestConfig.cs` | Constantes JWT compartidas |
 | `UnitTest/Common/TokenHelper.cs` | Generación de tokens JWT |
 | `UnitTest/Common/TestDataFactory.cs` | Fábrica de DTOs y entidades |
+
+## 8. Lecciones aprendidas (extensión a VentaDetalle)
+
+1. **Limpieza de tablas específicas**: Para VentaDetalle se usa `db.Set<VenVentaDetalle>().RemoveRange(...)` en lugar de `db.VenVenta.RemoveRange(...)`. Cada módulo debe limpiar su propia tabla.
+
+2. **GUID para nombres únicos**: En tests de integración, los nombres de productos y entidades FK se generan con `Guid.NewGuid()` para evitar colisiones cuando múltiples pruebas comparten la misma BD InMemory.
+
+3. **Location header consistente**: Todos los controladores (`VentaController`, `VentaDetalleController`, etc.) generan Location con el nombre PascalCase de la clase: `/api/v1/VentaDetalle/{id}`.

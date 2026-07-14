@@ -68,6 +68,23 @@ namespace WebAPIDevSecOps.Context
             modelBuilder.Entity<VenVenta>()
                 .HasIndex(v => v.dteFechaHoraCompra)
                 .HasDatabaseName("IX_VenVenta_dteFechaHoraCompra");
+
+            modelBuilder.Entity<VenVentaDetalle>()
+                .HasOne(vd => vd.VenVenta)
+                .WithMany()
+                .HasForeignKey(vd => vd.idVenVenta)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VenVentaDetalle>()
+                .HasOne(vd => vd.ProProducto)
+                .WithMany()
+                .HasForeignKey(vd => vd.idProProducto)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SegTokenBlacklist>(entity =>
+            {
+                entity.ToTable("SegTokenBlacklist", t => t.ExcludeFromMigrations());
+            });
         }
 
         public DbSet<CliCliente> CliCliente { get; set; } = default!;
@@ -77,5 +94,6 @@ namespace WebAPIDevSecOps.Context
         public DbSet<SegTokenBlacklist> SegTokenBlacklist { get; set; } = default!;
         public DbSet<VenCatEstado> VenCatEstado { get; set; } = default!;
         public DbSet<VenVenta> VenVenta { get; set; } = default!;
+        public DbSet<VenVentaDetalle> VenVentaDetalle { get; set; } = default!;
     }
 }

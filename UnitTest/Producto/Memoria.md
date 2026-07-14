@@ -82,6 +82,14 @@
 
 ---
 
+## Lecciones aprendidas (consumo desde VentaDetalle)
+
+1. **ProProducto como entidad compartida**: La entidad `ProProducto` es consultada directamente desde `VentaDetalleService` para el cálculo de `decTotalVenta` (via `decPrecio`) y para el endpoint de autocomplete `buscarproducto`. Esto demuestra que las entidades pueden ser reutilizadas entre servicios sin necesidad de inyectar dependencias de servicio a servicio.
+
+2. **Proyección parcial desde Service externo**: VentaDetalleService consulta `ProProducto` con `.Select(p => new { p.decPrecio })` — una proyección mínima para evitar traer datos innecesarios al calcular `decTotalVenta`.
+
+3. **Formato de autocomplete**: El endpoint `buscarproducto` de VentaDetalle expone datos de Producto con el formato `"{strNombreProducto} | #: {intNumeroExistencia} | $: {decPrecio}"` usando un DTO específico (`ProProductoAutocompleteDto`) que no duplica el DTO de respuesta completo.
+
 ## Resultado general
 
 ```
