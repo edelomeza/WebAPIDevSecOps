@@ -160,6 +160,14 @@ Todos los tests se ejecutan con el comando:
 dotnet test IntegrationTest/IntegrationTest.csproj -c Release --no-build --filter "FullyQualifiedName~Producto"
 ```
 
+## 8. Lecciones aprendidas (consumo desde VentaDetalle)
+
+1. **Producto sin índice único**: `strNombreProducto` no tiene unique index, lo que permite nombres duplicados. VentaDetalle usa `ProProducto` para autocomplete y retorna todos los productos que coinciden con el texto de búsqueda, incluyendo duplicados.
+
+2. **Formato de respuesta para autocomplete**: El DTO `ProProductoAutocompleteDto` (con `id` + `strTextoAutocomplete`) se definió en el proyecto WebAPIDevSecOps, no en UnitTest. Al ser un DTO público, puede serializarse correctamente en las pruebas de integración vía `ReadFromJsonAsync<IEnumerable<ProProductoAutocompleteDto>>`.
+
+3. **Reutilización de `ProProducto` sin acoplar servicios**: VentaDetalleService accede a `ProProducto` via `_context.Set<ProProducto>()` en lugar de inyectar `IProductoService`. Esto evita dependencias circulares y mantiene el principio de que los servicios acceden directamente al DbContext.
+
 ## 7. Archivos involucrados
 
 | Archivo | Rol |

@@ -64,6 +64,14 @@
 
 ---
 
+## Lecciones aprendidas (extensión a VentaDetalle)
+
+1. **Patrón de autocomplete replicable**: El endpoint `buscarproducto` de VentaDetalle implementa el mismo patrón de autocomplete que `ClienteController`, con búsqueda case-insensitive, orden alfabético, límite configurable (default 10, clamp 1-50) y respuesta con `IEnumerable<Dto>`.
+
+2. **Reutilización de entidades entre módulos**: VentaDetalleService consulta `ProProducto` directamente sin necesidad de inyectar `IProductoService`, lo que evita dependencias circulares y mantiene los servicios desacoplados.
+
+3. **Cálculo server-side**: El campo `decTotalVenta` no se envía desde el cliente — se calcula en el service como `intPiezaVenta * decPrecio` usando el precio actual del producto, garantizando consistencia.
+
 ## Resultado general
 
 ```

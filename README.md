@@ -1,105 +1,154 @@
 # WebAPIDevSecOps
 
-> **Este proyecto aplica buenas prácticas de DevSecOps** en todo su ciclo de vida: análisis estático (SAST), pruebas dinámicas (DAST), escaneo de dependencias, generación de SBOM, escaneo de contenedores, pruebas de seguridad automatizadas y un pipeline CI/CD que integra seguridad en cada etapa.
+> **This project applies DevSecOps best practices** throughout its lifecycle: static analysis (SAST), dynamic testing (DAST), dependency scanning, SBOM generation, container scanning, automated security testing, and a CI/CD pipeline with security built into every stage.
 
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-API REST segura en ASP.NET Core 10 con autenticación JWT, hashing Argon2id, rate limiting y SQL Server, con un pipeline CI/CD completo orientado a DevSecOps.
+Secure REST API built with ASP.NET Core 10 featuring JWT authentication, Argon2id hashing, rate limiting, and SQL Server, backed by a full DevSecOps CI/CD pipeline.
+
+> For detailed development conventions, test quirks, and quick commands, see [AGENTS.md](AGENTS.md).
 
 ---
 
-## Stack tecnológico
+## Tech Stack
 
-| Categoría | Tecnologías |
+| Category | Technologies |
 |---|---|
 | **Runtime** | .NET 10, ASP.NET Core 10 |
-| **Base de datos** | SQL Server (EF Core) / InMemory (desarrollo y tests) |
-| **Autenticación** | JWT Bearer (HMAC-SHA256) |
+| **Database** | SQL Server (EF Core) / InMemory (development and tests) |
+| **Authentication** | JWT Bearer (HMAC-SHA256) |
 | **Hashing** | Argon2id (Konscious) + BCrypt fallback |
 | **API Docs** | OpenAPI + Scalar UI |
-| **Logging** | Serilog (archivos JSON + consola) |
-| **Resiliencia** | Polly (circuit breaker) |
-| **Validación** | FluentValidation |
+| **Logging** | Serilog (JSON files + console) |
+| **Resilience** | Polly (circuit breaker) |
+| **Validation** | FluentValidation |
 
 ---
 
-## Seguridad implementada
+## Security Features
 
-| Feature | Detalle |
+| Feature | Detail |
 |---|---|
-| **JWT** | Token 60 min, HMAC-SHA256, clock skew zero, validación de issuer/audience |
-| **Password** | Argon2id (64 MB de memoria, 3 iteraciones) + BCrypt como fallback |
-| **Rate Limiting** | Global 1000 request/min, Login 5 requests/5min |
-| **Token Blacklist** | Logout invalida el token inmediatamente (caché en memoria) |
+| **JWT** | 60 min token, HMAC-SHA256, clock skew zero, issuer/audience validation |
+| **Password** | Argon2id (64 MB memory, 3 iterations) + BCrypt fallback |
+| **Rate Limiting** | Global 1000 req/min, Login 5 req/5min sliding window |
+| **Token Blacklist** | Logout invalidates token immediately (in-memory cache) |
 | **Security Headers** | CSP, HSTS, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy |
-| **Exception Handling** | Middleware que mapea excepciones a códigos HTTP correctos (409, 404, 403, 400, 500) |
-| **Account Lockout** | 5 intentos fallidos de login bloquean la cuenta por 15 minutos |
-| **Request Timeout** | 60 segundos configurable |
-| **Kestrel Limits** | Máx. 1000 conexiones concurrentes, 1 MB de body |
-| **CORS** | Un solo origen autorizado (https://localhost:5097) |
-| **Anti-enumeration** | Fake hash para evitar timing attacks en login |
+| **Exception Handling** | Middleware mapping exceptions to correct HTTP codes (409, 404, 403, 400, 500) |
+| **Account Lockout** | 5 failed login attempts lock the account for 15 minutes |
+| **Request Timeout** | 60 seconds, configurable |
+| **Kestrel Limits** | Max 1000 concurrent connections, 1 MB body size |
+| **CORS** | Single allowed origin (https://localhost:5097) |
+| **Anti-enumeration** | Fake hash to prevent timing attacks on login |
 
 ---
 
-## Setup rápido
+## Quick Setup
 
 ```powershell
-# 1. Copiar template de configuración
+# 1. Copy configuration template
 cp WebAPIDevSecOps/appsettings.Example.json WebAPIDevSecOps/appsettings.json
 
-# 2. Editar appsettings.json con tu conexión local
-#    O usar base de datos en memoria para desarrollo rápido:
-#    Agregar "UseInMemoryDatabase": true en appsettings.json
+# 2. Edit appsettings.json with your local connection
+#    Or use in-memory database for quick development:
+#    Add "UseInMemoryDatabase": true in appsettings.json
 
-# 3. Restaurar dependencias y ejecutar
+# 3. Restore dependencies and run
 dotnet restore
 dotnet run --project WebAPIDevSecOps/WebAPIDevSecOps.csproj
 ```
 
-**URLs de desarrollo:**  
+**Development URLs:**  
 - `http://localhost:5196`  
 - `https://localhost:7227`  
-- Documentación API: `/scalar`
+- API documentation: `/scalar`
 
 ---
 
-## Endpoints de la API
+## API Endpoints
 
-| Método | Ruta | Auth | Descripción |
+| Method | Route | Auth | Description |
 |---|---|---|---|
-| `POST` | `/api/v1/login/login` | No | Autenticación de usuario |
-| `POST` | `/api/v1/logout/logout` | No | Invalidar token JWT |
-| `GET` | `/api/v1/usuario` | Admin | Lista paginada de usuarios |
-| `GET` | `/api/v1/usuario/{id}` | Admin | Obtener usuario por ID |
-| `POST` | `/api/v1/usuario` | Admin | Crear nuevo usuario |
-| `PUT` | `/api/v1/usuario/{id}` | Admin | Actualizar usuario existente |
-| `DELETE` | `/api/v1/usuario/{id}` | Admin | Eliminar usuario |
-| `GET` | `/api/v1/tipoempleado` | Auth | Catálogo de tipos de empleado |
-| `GET` | `/api/v1/tipoempleado/{id}` | Auth | Tipo de empleado por ID |
-| `GET` | `/health` | No | Health checks completos |
-| `GET` | `/health/ready` | No | Health check solo base de datos |
+| `POST` | `/api/v1/login/login` | No | User authentication |
+| `POST` | `/api/v1/logout/logout` | No | Invalidate JWT token |
+| `GET` | `/api/v1/usuario` | AdminOnly | Paginated user list |
+| `GET` | `/api/v1/usuario/{id}` | AdminOnly | Get user by ID |
+| `GET` | `/api/v1/usuario/buscar` | AdminOnly | Search users by text |
+| `GET` | `/api/v1/usuario/autocomplete` | AdminOnly | User autocomplete |
+| `POST` | `/api/v1/usuario` | AdminOnly | Create user |
+| `PUT` | `/api/v1/usuario/{id}` | AdminOnly | Update user |
+| `DELETE` | `/api/v1/usuario/{id}` | AdminOnly | Delete user |
+| `GET` | `/api/v1/cliente` | AdminOnly | Paginated client list |
+| `GET` | `/api/v1/cliente/{id}` | AdminOnly | Get client by ID |
+| `GET` | `/api/v1/cliente/buscar` | AdminOnly | Search clients by text |
+| `GET` | `/api/v1/cliente/autocomplete` | AdminOnly | Client autocomplete |
+| `POST` | `/api/v1/cliente` | AdminOnly | Create client |
+| `PUT` | `/api/v1/cliente/{id}` | AdminOnly | Update client |
+| `DELETE` | `/api/v1/cliente/{id}` | AdminOnly | Delete client |
+| `GET` | `/api/v1/tipoempleado` | AdminOnly | Employee type catalog |
+| `GET` | `/api/v1/tipoempleado/{id}` | AdminOnly | Employee type by ID |
+| `GET` | `/api/v1/empleado` | AdminOnly | Paginated employee list |
+| `GET` | `/api/v1/empleado/{id}` | AdminOnly | Get employee by ID |
+| `GET` | `/api/v1/empleado/buscar` | AdminOnly | Search employees by text |
+| `POST` | `/api/v1/empleado` | AdminOnly | Create employee |
+| `PUT` | `/api/v1/empleado/{id}` | AdminOnly | Update employee |
+| `DELETE` | `/api/v1/empleado/{id}` | AdminOnly | Delete employee |
+| `GET` | `/api/v1/producto` | AdminOnly | Paginated product list |
+| `GET` | `/api/v1/producto/{id}` | AdminOnly | Get product by ID |
+| `GET` | `/api/v1/producto/buscar` | AdminOnly | Search products by text |
+| `POST` | `/api/v1/producto` | AdminOnly | Create product |
+| `PUT` | `/api/v1/producto/{id}` | AdminOnly | Update product |
+| `DELETE` | `/api/v1/producto/{id}` | AdminOnly | Delete product |
+| `GET` | `/api/v1/estadoventa` | AdminOnly | Sale status catalog |
+| `GET` | `/api/v1/estadoventa/{id}` | AdminOnly | Sale status by ID |
+| `GET` | `/api/v1/venta` | AdminOnly | Paginated sale list |
+| `GET` | `/api/v1/venta/{id}` | AdminOnly | Get sale by ID |
+| `GET` | `/api/v1/venta/buscar` | AdminOnly | Search sales by folio/client |
+| `POST` | `/api/v1/venta` | AdminOnly | Create sale |
+| `GET` | `/api/v1/ventadetalle` | AdminOnly | Paginated detail list |
+| `GET` | `/api/v1/ventadetalle/{id}` | AdminOnly | Get detail by ID |
+| `GET` | `/api/v1/ventadetalle/buscarproducto` | AdminOnly | Product autocomplete for sales |
+| `POST` | `/api/v1/ventadetalle` | AdminOnly | Add product to sale |
+| `GET` | `/health` | No | Full health checks |
+| `GET` | `/health/ready` | No | Database-only health check |
 
 ---
 
-## Estructura del proyecto
+## Data Model
+
+| Entity | Table | Description |
+|---|---|---|
+| `SegUsuario` | `SegUsuario` | Application users (login, roles) |
+| `CliCliente` | `CliCliente` | Client catalog |
+| `EmpCatTipoEmpleado` | `EmpCatTipoEmpleado` | Employee type catalog |
+| `EmpEmpleado` | `EmpEmpleado` | Employee catalog |
+| `ProProducto` | `ProProducto` | Product catalog |
+| `VenCatEstado` | `VenCatEstado` | Sale status catalog |
+| `VenVenta` | `VenVenta` | Sales header |
+| `VenVentaDetalle` | `VenVentaDetalle` | Sales detail lines |
+| `SegTokenBlacklist` | `SegTokenBlacklist` | *Excluded from migrations — in-memory only* |
+
+---
+
+## Project Structure
 
 ```
 WebAPIDevSecOps/
-├── WebAPIDevSecOps/            # API principal
-│   ├── Program.cs               # Entrypoint y pipeline de middleware
-│   ├── appsettings.json        # Configuración local (no versionado)
-│   ├── appsettings.Example.json # Template de configuración (versionado)
-│   ├── Controllers/             # Endpoints de la API
-│   ├── Services/                # Lógica de negocio
-│   ├── Middleware/              # Exception, audit logging, timeout
+├── WebAPIDevSecOps/            # Main API
+│   ├── Program.cs               # Entrypoint and middleware pipeline
+│   ├── appsettings.json         # Local configuration (not versioned)
+│   ├── appsettings.Example.json # Configuration template (versioned)
+│   ├── Controllers/             # API endpoints (11 files)
+│   ├── Services/                # Business logic
+│   ├── Middleware/              # Exception handling, audit logging, timeout
 │   ├── Context/                 # EF Core DbContext
-│   ├── Models/                  # Entidades de base de datos
-│   ├── Dto/                     # Request/Response + Validadores
-│   └── Migrations/              # Migraciones de EF Core
-├── UnitTest/                    # Tests unitarios (xUnit)
-├── IntegrationTest/             # Tests de integración (WebApplicationFactory)
-└── SecurityTest/                # Tests de seguridad
+│   ├── Models/                  # Database entities (9 entities)
+│   ├── Dto/                     # Request/Response models + Validators (33 files)
+│   └── Migrations/              # EF Core migrations
+├── UnitTest/                    # Unit tests (303 tests)
+├── IntegrationTest/             # Integration tests (~160 tests)
+└── SecurityTest/                # Security tests (129 tests)
 ```
 
 ---
@@ -109,35 +158,35 @@ WebAPIDevSecOps/
 ```
 push → restore → build → unit tests → integration tests → security tests
        → vuln check → SBOM → docker build → Trivy scan → DAST (ZAP)
-       → SonarCloud → Semgrep (solo PR)
+       → SonarCloud → Semgrep (PR only)
 ```
 
-| Etapa | Herramienta | ¿Qué verifica? |
+| Stage | Tool | What it checks |
 |---|---|---|
-| **Unit Tests** | xUnit + Moq + FluentAssertions | Lógica de negocio (56 tests) |
-| **Integration Tests** | WebApplicationFactory | API completa contra base de datos (52 tests) |
-| **Security Tests** | WebApplicationFactory | SQLi, XSS, JWT, rate limiting, headers (25 tests) |
-| **Vulnerable Dependencies** | `dotnet list package --vulnerable` | Paquetes NuGet con CVEs conocidos |
-| **SBOM** | CycloneDX | Genera inventario de dependencias en formato CycloneDX |
-| **Container Scan** | Trivy | Escanea la imagen Docker; HIGH/CRITICAL bloquea el push |
-| **DAST** | OWASP ZAP | Ataques dinámicos a la API usando OpenAPI spec |
-| **SAST** | SonarCloud + Semgrep | Análisis estático de código con reglas personalizadas |
+| **Unit Tests** | xUnit + Moq + FluentAssertions | Business logic (303 tests) |
+| **Integration Tests** | WebApplicationFactory | Full API against database (~160 tests) |
+| **Security Tests** | WebApplicationFactory | SQLi, XSS, JWT, rate limiting, headers (129 tests) |
+| **Vulnerable Dependencies** | `dotnet list package --vulnerable` | NuGet packages with known CVEs |
+| **SBOM** | CycloneDX | Generates dependency inventory in CycloneDX format |
+| **Container Scan** | Trivy | Scans Docker image; HIGH/CRITICAL blocks push |
+| **DAST** | OWASP ZAP | Dynamic attacks against the API using OpenAPI spec |
+| **SAST** | SonarCloud + Semgrep | Static code analysis with custom rules |
 
 ---
 
-## Tests
+## Testing
 
 ```powershell
-# Unitarios
+# Unit tests
 dotnet test UnitTest/UnitTest.csproj
 
-# Integración
+# Integration tests
 dotnet test IntegrationTest/IntegrationTest.csproj
 
-# Seguridad
+# Security tests
 dotnet test SecurityTest/SecurityTest.csproj
 
-# Todos
+# All tests
 dotnet test UnitTest/UnitTest.csproj
 dotnet test IntegrationTest/IntegrationTest.csproj
 dotnet test SecurityTest/SecurityTest.csproj
@@ -145,22 +194,39 @@ dotnet test SecurityTest/SecurityTest.csproj
 
 ---
 
-## Configuración
+## Configuration
 
-Las secciones clave de `appsettings.json`:
+Key sections in `appsettings.json`:
 
-| Sección | Propósito |
+| Section | Purpose |
 |---|---|
-| `ConnectionStrings:DefaultConnection` | Conexión a SQL Server |
-| `Jwt` | Key (mín. 32 bytes), Issuer, Audience |
+| `ConnectionStrings:DefaultConnection` | SQL Server connection string |
+| `Jwt` | Key (min 32 bytes), Issuer, Audience |
 | `PasswordHashing` | MemorySize, Iterations, DegreeOfParallelism |
-| `Resilience` | Parámetros del circuit breaker |
-| `RequestTimeoutSeconds` | Timeout global de requests |
+| `Resilience` | Circuit breaker parameters |
+| `RequestTimeoutSeconds` | Global request timeout |
 
-Las credenciales de base de datos pueden sobrescribirse vía variables de entorno: `DB_USER` y `DB_PASSWORD`.
+Database credentials can be overridden via environment variables: `DB_USER` and `DB_PASSWORD`.
 
 ---
 
-## Licencia
+## Database Migrations
+
+```powershell
+# Add a new migration
+dotnet ef migrations add MigrationName --project WebAPIDevSecOps --context AppDbContext
+
+# Apply migrations to database
+dotnet ef database update --project WebAPIDevSecOps --context AppDbContext
+
+# Remove last migration (if not applied)
+dotnet ef migrations remove --project WebAPIDevSecOps --context AppDbContext
+```
+
+> **Note:** `SegTokenBlacklist` is configured with `.ExcludeFromMigrations()` — it exists in the model for the in-memory blacklist but no migration will create it in SQL Server.
+
+---
+
+## License
 
 MIT

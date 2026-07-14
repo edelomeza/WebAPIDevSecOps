@@ -215,5 +215,41 @@ namespace UnitTest.Common
                 idSegUsuario = idSegUsuario,
             };
         }
+
+        public static VenVentaDetalle CreateVentaDetalle(int idVenVenta, int idProProducto, int piezas = 1, decimal precio = 99.99m)
+        {
+            return new VenVentaDetalle
+            {
+                idVenVenta = idVenVenta,
+                idProProducto = idProProducto,
+                intPiezaVenta = piezas,
+                decTotalVenta = piezas * precio,
+                RowVersion = new byte[] { 1, 0, 0, 0 },
+            };
+        }
+
+        public static List<VenVentaDetalle> CreateVentasDetalle(int count, int idVenVenta, int idProProductoStart = 1, decimal precio = 99.99m)
+        {
+            return Enumerable.Range(1, count)
+                .Select(i => new VenVentaDetalle
+                {
+                    idVenVenta = idVenVenta,
+                    idProProducto = idProProductoStart + i - 1,
+                    intPiezaVenta = i,
+                    decTotalVenta = i * precio,
+                    RowVersion = new byte[] { 1, 0, 0, 0 },
+                })
+                .ToList();
+        }
+
+        public static VenVentaDetalleCreateDto CreateVentaDetalleCreateDto(int idVenVenta, int idProProducto, int piezas = 1)
+        {
+            return new VenVentaDetalleCreateDto
+            {
+                idVenVenta = idVenVenta,
+                idProProducto = idProProducto,
+                intPiezaVenta = piezas,
+            };
+        }
     }
 }

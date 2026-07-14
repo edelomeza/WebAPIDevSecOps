@@ -60,6 +60,14 @@ SecurityTest (Producto):  21/21  ✔
 Total:                  105/105  ✔
 ```
 
+## Lecciones aprendidas (consumo desde VentaDetalle)
+
+1. **Exposición de datos de Producto desde otro controlador**: El endpoint `buscarproducto` de VentaDetalle expone datos de Producto (`strNombreProducto`, `intNumeroExistencia`, `decPrecio`) sin que haya un controller de Producto involucrado. Esto significa que los tests de seguridad de VentaDetalle deben cubrir este endpoint aunque los datos provengan de la tabla `ProProducto`.
+
+2. **Autocomplete no requiere RowVersion**: A diferencia de los endpoints CRUD de Producto, el endpoint de autocomplete de VentaDetalle no expone `RowVersion`, lo que simplifica las pruebas de seguridad (no hay conflictos de concurrencia que probar).
+
+3. **DTO específico vs. genérico**: `ProProductoAutocompleteDto` es un DTO ligero con solo `id` y `strTextoAutocomplete`, distinto de `ProProductoDto` que se usa en el CRUD de Producto. Cada módulo define sus propios DTOs de respuesta.
+
 ## Comandos útiles
 
 ```powershell

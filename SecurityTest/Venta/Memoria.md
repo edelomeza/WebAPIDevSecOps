@@ -39,6 +39,14 @@ SecurityTest (Venta):      12/12  ✔
 Total:                     64/64  ✔
 ```
 
+## Lecciones aprendidas (extensión a VentaDetalle)
+
+1. **Endpoint de autocomplete también requiere auth**: El endpoint `buscarproducto` de VentaDetalle se agregó al test `Should_Reject_Request_Without_Token` para verificar que los endpoints de búsqueda/autocomplete también exigen autenticación.
+
+2. **Validación de [Range] vs. lógica de negocio**: Los campos con `[Range(1, int.MaxValue)]` (como `idVenVenta`, `idProProducto`, `intPiezaVenta`) son validados por ASP.NET antes de llegar al controller → 400 automático. IDs inexistentes son validados por el service → 400 con mensaje.
+
+3. **Cobertura de endpoints**: En VentaDetalle hay 4 endpoints (GetAll, GetById, BuscarProducto, Create). El test "sin token" debe verificar los 4 explícitamente para asegurar cobertura completa.
+
 ## Comandos útiles
 
 ```powershell
