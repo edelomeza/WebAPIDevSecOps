@@ -51,6 +51,12 @@ public class SecurityTests : IClassFixture<WebApplicationFactory<Program>>, IAsy
 
         var postResponse = await _client.PostAsJsonAsync("/api/v1/ventadetalle", new { });
         Assert.Equal(HttpStatusCode.Unauthorized, postResponse.StatusCode);
+
+        var putResponse = await _client.PutAsJsonAsync("/api/v1/ventadetalle/1", new { });
+        Assert.Equal(HttpStatusCode.Unauthorized, putResponse.StatusCode);
+
+        var deleteResponse = await _client.DeleteAsync("/api/v1/ventadetalle/1");
+        Assert.Equal(HttpStatusCode.Unauthorized, deleteResponse.StatusCode);
     }
 
     [Fact]
@@ -196,5 +202,37 @@ public class SecurityTests : IClassFixture<WebApplicationFactory<Program>>, IAsy
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("no-store", response.Headers.CacheControl?.ToString() ?? "");
+    }
+
+    [Fact]
+    public async Task Should_Reject_Update_NonExistent_Detalle()
+    {
+        var dto = new { id = 9999, idVenVenta = 1, idProProducto = 1, intPiezaVenta = 1 };
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/v1/ventadetalle/9999")
+        {
+            Content = JsonContent.Create(dto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Should_Reject_Delete_NonExistent_Detalle()
+    {
+        var dto = new { id = 9999, RowVersion = new byte[] { 1, 0, 0, 0 } };
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, "/api/v1/ventadetalle/9999")
+        {
+            Content = JsonContent.Create(dto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }

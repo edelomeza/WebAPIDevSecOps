@@ -195,5 +195,34 @@ namespace UnitTest.VentaDetalle
             var mensaje = error!.GetType().GetProperty("mensaje")?.GetValue(error) as string;
             Assert.Equal("El producto especificado no existe.", mensaje);
         }
+
+        [Fact]
+        public async Task Create_WithInsufficientStock_ReturnsBadRequest()
+        {
+            var (context, ventaId, productoId, _) = await SeedDependenciesAsync();
+            var controller = CreateController(context);
+            var dto = new VenVentaDetalleCreateDto { idVenVenta = ventaId, idProProducto = productoId, intPiezaVenta = 999 };
+
+            var result = await controller.Create(dto);
+
+            result.Result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequest = result.Result as BadRequestObjectResult;
+            var error = badRequest!.Value;
+            var mensaje = error!.GetType().GetProperty("mensaje")?.GetValue(error) as string;
+            Assert.Equal("El producto no tiene las suficientes existencias.", mensaje);
+        }
+
+        [Fact]
+        public async Task Create_UpdatesProductoExistencias()
+        {
+            var (context, ventaId, productoId, _) = await SeedDependenciesAsync();
+            var controller = CreateController(context);
+            var dto = new VenVentaDetalleCreateDto { idVenVenta = ventaId, idProProducto = productoId, intPiezaVenta = 3 };
+
+            await controller.Create(dto);
+
+            var producto = context.ProProducto.First();
+            producto.intNumeroExistencia.Should().Be(7);
+        }
     }
 }

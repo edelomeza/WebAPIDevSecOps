@@ -138,6 +138,55 @@ namespace WebAPIDevSecOps.Services
             };
         }
 
+        public async Task UpdateAsync(int id, VenVentaUpdateDto dto)
+        {
+            if (id != dto.id)
+                throw new ArgumentException("El ID de la venta no coincide.");
+
+            var venta = await _context.Set<VenVenta>()
+                .FirstOrDefaultAsync(v => v.id == id);
+
+            if (venta == null)
+                throw new KeyNotFoundException("Venta no encontrada.");
+
+            var clienteExiste = await _context.CliCliente.AnyAsync(c => c.id == dto.idCliCliente);
+            if (!clienteExiste)
+                throw new ArgumentException("El cliente especificado no existe.");
+
+            var usuarioExiste = await _context.SegUsuario.AnyAsync(u => u.id == dto.idSegUsuario);
+            if (!usuarioExiste)
+                throw new ArgumentException("El usuario especificado no existe.");
+
+            var estadoExiste = await _context.VenCatEstado.AnyAsync(e => e.id == dto.idVenCatEstado);
+            if (!estadoExiste)
+                throw new ArgumentException("El estado especificado no existe.");
+
+            if (dto.RowVersion is { Length: > 0 })
+                _context.Entry(venta).Property("RowVersion").OriginalValue = dto.RowVersion;
+
+            venta.idCliCliente = dto.idCliCliente;
+            venta.idSegUsuario = dto.idSegUsuario;
+            venta.idVenCatEstado = dto.idVenCatEstado;
+
+            _context.Entry(venta).State = EntityState.Modified;
+            await _dbResilience.SaveChangesAsync(_context);
+        }
+
+        public async Task DeleteAsync(int id, VenVentaDeleteDto dto)
+        {
+            var venta = await _context.Set<VenVenta>()
+                .FirstOrDefaultAsync(v => v.id == id);
+
+            if (venta == null)
+                throw new KeyNotFoundException("Venta no encontrada.");
+
+            if (dto.RowVersion is { Length: > 0 })
+                _context.Entry(venta).Property("RowVersion").OriginalValue = dto.RowVersion;
+
+            _context.Set<VenVenta>().Remove(venta);
+            await _dbResilience.SaveChangesAsync(_context);
+        }
+
         public async Task<VenVentaDto> CreateAsync(VenVentaCreateDto dto)
         {
             var clienteExiste = await _context.CliCliente.AnyAsync(c => c.id == dto.idCliCliente);

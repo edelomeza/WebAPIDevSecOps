@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using WebAPIDevSecOps.Dto;
 using WebAPIDevSecOps.Interfaces;
@@ -61,6 +62,63 @@ public class VentaDetalleController : ControllerBase
 
         var result = await _ventaDetalleService.BuscarProductoAsync(texto, maxResultados);
         return Ok(result);
+    }
+
+    [HttpPut("{id}")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Update(int id, VenVentaDetalleUpdateDto dto)
+    {
+        try
+        {
+            await _ventaDetalleService.UpdateAsync(id, dto);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict();
+        }
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Delete(int id, VenVentaDetalleDeleteDto dto)
+    {
+        try
+        {
+            if (id != dto.id)
+                return BadRequest(new { mensaje = "El ID de la ruta no coincide con el ID del cuerpo." });
+
+            await _ventaDetalleService.DeleteAsync(id, dto);
+            return Ok();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict();
+        }
     }
 
     [HttpPost]

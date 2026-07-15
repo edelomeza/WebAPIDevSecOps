@@ -55,8 +55,14 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         var usuario = new SegUsuario { strNombre = $"intuser{Guid.NewGuid():N}"[..20], strPWD = "hash", strCorreoElectronico = $"intusr{Guid.NewGuid():N}@test.com", RowVersion = new byte[] { 1, 0, 0, 0 } };
         db.SegUsuario.Add(usuario);
 
-        var estado = new VenCatEstado { strValor = "En compra", strDescripcion = "Compra en proceso" };
-        db.VenCatEstado.Add(estado);
+        if (!db.VenCatEstado.Any())
+        {
+            db.VenCatEstado.AddRange(
+                new VenCatEstado { id = 1, strValor = "En compra", strDescripcion = "Compra en proceso" },
+                new VenCatEstado { id = 2, strValor = "Pagado", strDescripcion = "Compra pagada" },
+                new VenCatEstado { id = 3, strValor = "Cancelado", strDescripcion = "Compra cancelada" }
+            );
+        }
 
         await db.SaveChangesAsync();
         return (cliente.id, usuario.id);
@@ -440,5 +446,299 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         result!.Items.Should().HaveCount(2);
         result.PageNumber.Should().Be(2);
         result.PageSize.Should().Be(2);
+    }
+
+    // ==================== UPDATE ====================
+
+    [Fact]
+    public async Task Update_ValidUpdate_Returns204()
+    {
+        var venta = await CreateVentaAsync();
+
+                var updateDto = TestDataFactory.CreateVentaUpdateDto(
+                    venta.id, venta.idCliCliente, venta.idSegUsuario, idVenCatEstado: 3);
+
+                var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/venta/{venta.id}")
+                {
+                    Content = JsonContent.Create(updateDto)
+                };
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+                var response = await _client.SendAsync(request);
+
+                response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+            }
+
+    [Fact]
+    public async Task Update_ValidUpdate_ChangesEstado()
+    {
+        var venta = await CreateVentaAsync();
+
+        var updateDto = TestDataFactory.CreateVentaUpdateDto(
+            venta.id, venta.idCliCliente, venta.idSegUsuario, idVenCatEstado: 3);
+
+        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/venta/{venta.id}")
+        {
+            Content = JsonContent.Create(updateDto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        await _client.SendAsync(request);
+
+        var updated = await GetVentaAsync(venta.id);
+        updated.idVenCatEstado.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task Update_NonExistentId_Returns404()
+    {
+        var venta = await CreateVentaAsync();
+
+        var updateDto = TestDataFactory.CreateVentaUpdateDto(
+            9999, venta.idCliCliente, venta.idSegUsuario, idVenCatEstado: 2);
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/v1/venta/9999")
+        {
+            Content = JsonContent.Create(updateDto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Update_StaleRowVersion_Returns409()
+    {
+        var venta = await CreateVentaAsync();
+
+        var updateDto = TestDataFactory.CreateVentaUpdateDto(
+            venta.id, venta.idCliCliente, venta.idSegUsuario, idVenCatEstado: 2, rowVersion: new byte[] { 2, 0, 0, 0 });
+
+        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/venta/{venta.id}")
+        {
+            Content = JsonContent.Create(updateDto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Update_NonExistentCliente_Returns400()
+    {
+        var (clienteId, usuarioId) = await SeedDependenciesAsync();
+        var venta = await CreateVentaAsync(clienteId, usuarioId);
+
+        var updateDto = TestDataFactory.CreateVentaUpdateDto(
+            venta.id, idCliCliente: 9999, idSegUsuario: usuarioId, idVenCatEstado: 2);
+
+        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/venta/{venta.id}")
+        {
+            Content = JsonContent.Create(updateDto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Update_NonExistentUsuario_Returns400()
+    {
+        var (clienteId, usuarioId) = await SeedDependenciesAsync();
+        var venta = await CreateVentaAsync(clienteId, usuarioId);
+
+        var updateDto = TestDataFactory.CreateVentaUpdateDto(
+            venta.id, clienteId, idSegUsuario: 9999, idVenCatEstado: 2);
+
+        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/venta/{venta.id}")
+        {
+            Content = JsonContent.Create(updateDto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Update_NonExistentEstado_Returns400()
+    {
+        var venta = await CreateVentaAsync();
+
+        var updateDto = TestDataFactory.CreateVentaUpdateDto(
+            venta.id, venta.idCliCliente, venta.idSegUsuario, idVenCatEstado: 9999);
+
+        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/venta/{venta.id}")
+        {
+            Content = JsonContent.Create(updateDto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    // ==================== DELETE ====================
+
+    [Fact]
+    public async Task Delete_ValidDelete_Returns200()
+    {
+        var venta = await CreateVentaAsync();
+
+        var deleteDto = TestDataFactory.CreateVentaDeleteDto(venta.id);
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/venta/{venta.id}")
+        {
+            Content = JsonContent.Create(deleteDto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Delete_ValidDelete_RemovesVentaFromDatabase()
+    {
+        var venta = await CreateVentaAsync();
+
+        var deleteDto = TestDataFactory.CreateVentaDeleteDto(venta.id);
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/venta/{venta.id}")
+        {
+            Content = JsonContent.Create(deleteDto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        await _client.SendAsync(request);
+
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/venta/{venta.id}");
+        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var getResponse = await _client.SendAsync(getRequest);
+
+        getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_NonExistentId_Returns404()
+    {
+        var deleteDto = TestDataFactory.CreateVentaDeleteDto(9999);
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, "/api/v1/venta/9999")
+        {
+            Content = JsonContent.Create(deleteDto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_StaleRowVersion_Returns409()
+    {
+        var venta = await CreateVentaAsync();
+
+        var deleteDto = TestDataFactory.CreateVentaDeleteDto(venta.id, rowVersion: new byte[] { 2, 0, 0, 0 });
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/venta/{venta.id}")
+        {
+            Content = JsonContent.Create(deleteDto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Delete_OnlyRemovesTargetVenta()
+    {
+        var v1 = await CreateVentaAsync();
+        var v2 = await CreateVentaAsync();
+
+        var deleteDto = TestDataFactory.CreateVentaDeleteDto(v1.id);
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/venta/{v1.id}")
+        {
+            Content = JsonContent.Create(deleteDto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        await _client.SendAsync(request);
+
+        var getV2Request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/venta/{v2.id}");
+        getV2Request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var getV2Response = await _client.SendAsync(getV2Request);
+
+        getV2Response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    // ==================== FULL LIFECYCLE ====================
+
+    [Fact]
+    public async Task FullLifecycle_CreateGetUpdateGetDelete_CompleteFlow()
+    {
+        var (clienteId, usuarioId) = await SeedDependenciesAsync();
+
+        var createDto = new { idCliCliente = clienteId, idSegUsuario = usuarioId };
+        var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/venta")
+        {
+            Content = JsonContent.Create(createDto)
+        };
+        createRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var createResponse = await _client.SendAsync(createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var created = await createResponse.Content.ReadFromJsonAsync<VenVentaDto>();
+        created.Should().NotBeNull();
+
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/venta/{created!.id}");
+        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var getResponse = await _client.SendAsync(getRequest);
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var updateDto = TestDataFactory.CreateVentaUpdateDto(
+            created.id, created.idCliCliente, created.idSegUsuario, idVenCatEstado: 3);
+
+        var updateRequest = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/venta/{created.id}")
+        {
+            Content = JsonContent.Create(updateDto)
+        };
+        updateRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var updateResponse = await _client.SendAsync(updateRequest);
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var getUpdatedRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/venta/{created.id}");
+        getUpdatedRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var getUpdatedResponse = await _client.SendAsync(getUpdatedRequest);
+        var updated = await getUpdatedResponse.Content.ReadFromJsonAsync<VenVentaDto>();
+        updated!.idVenCatEstado.Should().Be(3);
+
+        var deleteDto = TestDataFactory.CreateVentaDeleteDto(created.id);
+
+        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/venta/{created.id}")
+        {
+            Content = JsonContent.Create(deleteDto)
+        };
+        deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var deleteResponse = await _client.SendAsync(deleteRequest);
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var getAfterDeleteRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/venta/{created.id}");
+        getAfterDeleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var getAfterDeleteResponse = await _client.SendAsync(getAfterDeleteRequest);
+        getAfterDeleteResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }
