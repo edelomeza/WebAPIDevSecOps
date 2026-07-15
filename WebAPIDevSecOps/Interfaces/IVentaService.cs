@@ -8,5 +8,7 @@ namespace WebAPIDevSecOps.Interfaces
         Task<VenVentaDto?> GetByIdAsync(int id);
         Task<PagedResult<VenVentaDto>> SearchAsync(string? strClaveVenta = null, string? strNombreCliente = null, DateTime? dteFechaInicio = null, DateTime? dteFechaFin = null, QueryParams? queryParams = null);
         Task<VenVentaDto> CreateAsync(VenVentaCreateDto dto);
+        Task UpdateAsync(int id, VenVentaUpdateDto dto);
+        Task DeleteAsync(int id, VenVentaDeleteDto dto);
     }
 }

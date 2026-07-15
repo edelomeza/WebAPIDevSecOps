@@ -79,7 +79,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         var producto = new ProProducto
         {
             strNombreProducto = $"intproducto{Guid.NewGuid():N}"[..30],
-            intNumeroExistencia = 10,
+            intNumeroExistencia = 1000,
             decPrecio = 149.99m,
             RowVersion = new byte[] { 1, 0, 0, 0 }
         };
@@ -429,6 +429,50 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
     }
 
     [Fact]
+    public async Task Create_InsufficientStock_Returns400()
+    {
+        var (ventaId, productoId, _) = await SeedDependenciesAsync();
+
+        var dto = new { idVenVenta = ventaId, idProProducto = productoId, intPiezaVenta = 9999 };
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/ventadetalle")
+        {
+            Content = JsonContent.Create(dto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Create_UpdatesStockInDatabase()
+    {
+        var (ventaId, productoId, _) = await SeedDependenciesAsync();
+
+        var dto = new { idVenVenta = ventaId, idProProducto = productoId, intPiezaVenta = 4 };
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/ventadetalle")
+        {
+            Content = JsonContent.Create(dto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var searchRequest = new HttpRequestMessage(HttpMethod.Get, "/api/v1/ventadetalle/buscarproducto?texto=intproducto");
+        searchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var searchResponse = await _client.SendAsync(searchRequest);
+        var productos = await searchResponse.Content.ReadFromJsonAsync<IEnumerable<ProProductoAutocompleteDto>>();
+
+        productos.Should().NotBeNull();
+        var producto = productos!.First();
+        producto.strTextoAutocomplete.Should().Contain("#: 996");
+    }
+
+    [Fact]
     public async Task BuscarProducto_ReturnsMatchingProductos()
     {
         var (_, productoId, _) = await SeedDependenciesAsync();
@@ -455,5 +499,158 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         var response = await _client.SendAsync(request);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Update_ValidUpdate_Returns204()
+    {
+        var detalle = await CreateDetalleAsync();
+        var dto = new { id = detalle.id, idVenVenta = detalle.idVenVenta, idProProducto = detalle.idProProducto, intPiezaVenta = 5, RowVersion = detalle.RowVersion };
+
+        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/ventadetalle/{detalle.id}")
+        {
+            Content = JsonContent.Create(dto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task Update_ValidUpdate_ChangesFieldsInDatabase()
+    {
+        var detalle = await CreateDetalleAsync();
+        var dto = new { id = detalle.id, idVenVenta = detalle.idVenVenta, idProProducto = detalle.idProProducto, intPiezaVenta = 10, RowVersion = detalle.RowVersion };
+
+        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/ventadetalle/{detalle.id}")
+        {
+            Content = JsonContent.Create(dto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/ventadetalle/{detalle.id}");
+        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var getResponse = await _client.SendAsync(getRequest);
+        var updated = await getResponse.Content.ReadFromJsonAsync<VenVentaDetalleDto>();
+
+        updated!.intPiezaVenta.Should().Be(10);
+        updated.decTotalVenta.Should().Be(10 * detalle.decTotalVenta / detalle.intPiezaVenta);
+    }
+
+    [Fact]
+    public async Task Update_NonExistentDetalle_Returns404()
+    {
+        var (ventaId, productoId, _) = await SeedDependenciesAsync();
+        var dto = new { id = 9999, idVenVenta = ventaId, idProProducto = productoId, intPiezaVenta = 1 };
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/v1/ventadetalle/9999")
+        {
+            Content = JsonContent.Create(dto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Update_NonExistentVenta_Returns400()
+    {
+        var detalle = await CreateDetalleAsync();
+        var dto = new { id = detalle.id, idVenVenta = 9999, idProProducto = detalle.idProProducto, intPiezaVenta = 1, RowVersion = detalle.RowVersion };
+
+        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/ventadetalle/{detalle.id}")
+        {
+            Content = JsonContent.Create(dto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Delete_ValidDelete_Returns200()
+    {
+        var detalle = await CreateDetalleAsync();
+        var dto = new { id = detalle.id, RowVersion = detalle.RowVersion };
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/ventadetalle/{detalle.id}")
+        {
+            Content = JsonContent.Create(dto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Delete_ValidDelete_RemovesDetalle()
+    {
+        var detalle = await CreateDetalleAsync();
+        var dto = new { id = detalle.id, RowVersion = detalle.RowVersion };
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/ventadetalle/{detalle.id}")
+        {
+            Content = JsonContent.Create(dto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/ventadetalle/{detalle.id}");
+        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var getResponse = await _client.SendAsync(getRequest);
+
+        getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_NonExistentDetalle_Returns404()
+    {
+        var dto = new { id = 9999, RowVersion = new byte[] { 1, 0, 0, 0 } };
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, "/api/v1/ventadetalle/9999")
+        {
+            Content = JsonContent.Create(dto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_OnlyRemovesTargetDetalle()
+    {
+        var detalle1 = await CreateDetalleAsync();
+        var detalle2 = await CreateDetalleAsync();
+        var dto = new { id = detalle1.id, RowVersion = detalle1.RowVersion };
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/ventadetalle/{detalle1.id}")
+        {
+            Content = JsonContent.Create(dto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/ventadetalle/{detalle2.id}");
+        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var getResponse = await _client.SendAsync(getRequest);
+
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }

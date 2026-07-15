@@ -242,6 +242,27 @@ namespace UnitTest.Common
                 .ToList();
         }
 
+        public static VenVentaUpdateDto CreateVentaUpdateDto(int id, int idCliCliente, int idSegUsuario, int idVenCatEstado = 2, byte[]? rowVersion = null)
+        {
+            return new VenVentaUpdateDto
+            {
+                id = id,
+                idCliCliente = idCliCliente,
+                idSegUsuario = idSegUsuario,
+                idVenCatEstado = idVenCatEstado,
+                RowVersion = rowVersion,
+            };
+        }
+
+        public static VenVentaDeleteDto CreateVentaDeleteDto(int id, byte[]? rowVersion = null)
+        {
+            return new VenVentaDeleteDto
+            {
+                id = id,
+                RowVersion = rowVersion,
+            };
+        }
+
         public static VenVentaDetalleCreateDto CreateVentaDetalleCreateDto(int idVenVenta, int idProProducto, int piezas = 1)
         {
             return new VenVentaDetalleCreateDto
@@ -249,6 +270,27 @@ namespace UnitTest.Common
                 idVenVenta = idVenVenta,
                 idProProducto = idProProducto,
                 intPiezaVenta = piezas,
+            };
+        }
+
+        public static VenVentaDetalleUpdateDto CreateVentaDetalleUpdateDto(int id, int idVenVenta, int idProProducto, int piezas = 1, byte[]? rowVersion = null)
+        {
+            return new VenVentaDetalleUpdateDto
+            {
+                id = id,
+                idVenVenta = idVenVenta,
+                idProProducto = idProProducto,
+                intPiezaVenta = piezas,
+                RowVersion = rowVersion,
+            };
+        }
+
+        public static VenVentaDetalleDeleteDto CreateVentaDetalleDeleteDto(int id, byte[]? rowVersion = null)
+        {
+            return new VenVentaDetalleDeleteDto
+            {
+                id = id,
+                RowVersion = rowVersion,
             };
         }
     }
