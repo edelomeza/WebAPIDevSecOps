@@ -70,7 +70,7 @@ namespace WebAPIDevSecOps.Services
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<ProProductoAutocompleteDto>> BuscarProductoAsync(string texto, int maxResultados = 10)
+        public async Task<IEnumerable<ProProductoAutocompleteDto>> AutocompleteProductoAsync(string texto, int maxResultados = 10)
         {
             return await _context.Set<ProProducto>()
                 .AsNoTracking()

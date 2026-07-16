@@ -46,7 +46,7 @@ public class SecurityTests : IClassFixture<WebApplicationFactory<Program>>, IAsy
         var getByIdResponse = await _client.GetAsync("/api/v1/ventadetalle/1");
         Assert.Equal(HttpStatusCode.Unauthorized, getByIdResponse.StatusCode);
 
-        var buscarResponse = await _client.GetAsync("/api/v1/ventadetalle/buscarproducto?texto=test");
+        var buscarResponse = await _client.GetAsync("/api/v1/ventadetalle/autocomplete?texto=test");
         Assert.Equal(HttpStatusCode.Unauthorized, buscarResponse.StatusCode);
 
         var postResponse = await _client.PostAsJsonAsync("/api/v1/ventadetalle", new { });

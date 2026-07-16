@@ -61,7 +61,7 @@ namespace UnitTest.VentaDetalle
             );
             var controller = CreateController(context);
 
-            var result = await controller.BuscarProducto("Laptop");
+            var result = await controller.Autocomplete("Laptop");
 
             result.Result.Should().BeOfType<OkObjectResult>();
             var okResult = result.Result as OkObjectResult;
@@ -77,7 +77,7 @@ namespace UnitTest.VentaDetalle
             var context = SeedProductos(("Laptop HP", 10, 15000.00m));
             var controller = CreateController(context);
 
-            var result = await controller.BuscarProducto("Zzzz");
+            var result = await controller.Autocomplete("Zzzz");
 
             result.Result.Should().BeOfType<OkObjectResult>();
             var okResult = result.Result as OkObjectResult;
@@ -92,7 +92,7 @@ namespace UnitTest.VentaDetalle
             var context = SeedProductos(("laptop HP", 10, 15000.00m));
             var controller = CreateController(context);
 
-            var result = await controller.BuscarProducto("LAPTOP");
+            var result = await controller.Autocomplete("LAPTOP");
 
             result.Result.Should().BeOfType<OkObjectResult>();
             var okResult = result.Result as OkObjectResult;
@@ -107,7 +107,7 @@ namespace UnitTest.VentaDetalle
             var context = SeedProductos(("Laptop HP", 10, 15000.00m));
             var controller = CreateController(context);
 
-            var result = await controller.BuscarProducto("Laptop");
+            var result = await controller.Autocomplete("Laptop");
 
             result.Result.Should().BeOfType<OkObjectResult>();
             var okResult = result.Result as OkObjectResult;
@@ -127,7 +127,7 @@ namespace UnitTest.VentaDetalle
             var context = SeedProductos(productos);
             var controller = CreateController(context);
 
-            var result = await controller.BuscarProducto("Producto", 5);
+            var result = await controller.Autocomplete("Producto", 5);
 
             result.Result.Should().BeOfType<OkObjectResult>();
             var okResult = result.Result as OkObjectResult;
@@ -145,7 +145,7 @@ namespace UnitTest.VentaDetalle
             var context = SeedProductos(productos);
             var controller = CreateController(context);
 
-            var result = await controller.BuscarProducto("Prod");
+            var result = await controller.Autocomplete("Prod");
 
             result.Result.Should().BeOfType<OkObjectResult>();
             var okResult = result.Result as OkObjectResult;
@@ -163,7 +163,7 @@ namespace UnitTest.VentaDetalle
             );
             var controller = CreateController(context);
 
-            var result = await controller.BuscarProducto("a");
+            var result = await controller.Autocomplete("a");
 
             result.Result.Should().BeOfType<OkObjectResult>();
             var okResult = result.Result as OkObjectResult;
@@ -179,7 +179,7 @@ namespace UnitTest.VentaDetalle
             var context = SeedProductos(("Producto Único", 10, 99.99m));
             var controller = CreateController(context);
 
-            var result = await controller.BuscarProducto("Único");
+            var result = await controller.Autocomplete("Único");
 
             result.Result.Should().BeOfType<OkObjectResult>();
             var okResult = result.Result as OkObjectResult;
@@ -196,7 +196,7 @@ namespace UnitTest.VentaDetalle
             var context = SeedProductos(("Laptop", 10, 15000.00m));
             var controller = CreateController(context);
 
-            var result = await controller.BuscarProducto("");
+            var result = await controller.Autocomplete("");
 
             result.Result.Should().BeOfType<BadRequestObjectResult>();
         }
@@ -207,7 +207,7 @@ namespace UnitTest.VentaDetalle
             var context = SeedProductos(("Laptop", 10, 15000.00m));
             var controller = CreateController(context);
 
-            var result = await controller.BuscarProducto("   ");
+            var result = await controller.Autocomplete("   ");
 
             result.Result.Should().BeOfType<BadRequestObjectResult>();
         }
@@ -221,7 +221,7 @@ namespace UnitTest.VentaDetalle
             var context = SeedProductos(productos);
             var controller = CreateController(context);
 
-            var result = await controller.BuscarProducto("Prod", 100);
+            var result = await controller.Autocomplete("Prod", 100);
 
             result.Result.Should().BeOfType<OkObjectResult>();
             var okResult = result.Result as OkObjectResult;
@@ -236,7 +236,7 @@ namespace UnitTest.VentaDetalle
             var context = SeedProductos(("Laptop", 10, 15000.00m));
             var controller = CreateController(context);
 
-            var result = await controller.BuscarProducto("Laptop", 0);
+            var result = await controller.Autocomplete("Laptop", 0);
 
             result.Result.Should().BeOfType<OkObjectResult>();
             var okResult = result.Result as OkObjectResult;

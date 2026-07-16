@@ -44,13 +44,13 @@ public class VentaDetalleController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("buscarproducto")]
+    [HttpGet("autocomplete")]
     [Authorize(Policy = "AdminOnly")]
     [ProducesResponseType(typeof(IEnumerable<ProProductoAutocompleteDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<IEnumerable<ProProductoAutocompleteDto>>> BuscarProducto(
+    public async Task<ActionResult<IEnumerable<ProProductoAutocompleteDto>>> Autocomplete(
         [FromQuery][StringLength(50)] string texto,
         [FromQuery] int maxResultados = 10)
     {
@@ -60,7 +60,7 @@ public class VentaDetalleController : ControllerBase
         if (maxResultados < 1 || maxResultados > 50)
             maxResultados = 10;
 
-        var result = await _ventaDetalleService.BuscarProductoAsync(texto, maxResultados);
+        var result = await _ventaDetalleService.AutocompleteProductoAsync(texto, maxResultados);
         return Ok(result);
     }
 

@@ -462,7 +462,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         var response = await _client.SendAsync(request);
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var searchRequest = new HttpRequestMessage(HttpMethod.Get, "/api/v1/ventadetalle/buscarproducto?texto=intproducto");
+        var searchRequest = new HttpRequestMessage(HttpMethod.Get, "/api/v1/ventadetalle/autocomplete?texto=intproducto");
         searchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
         var searchResponse = await _client.SendAsync(searchRequest);
         var productos = await searchResponse.Content.ReadFromJsonAsync<IEnumerable<ProProductoAutocompleteDto>>();
@@ -477,7 +477,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
     {
         var (_, productoId, _) = await SeedDependenciesAsync();
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/ventadetalle/buscarproducto?texto=intproducto");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/ventadetalle/autocomplete?texto=intproducto");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
 
         var response = await _client.SendAsync(request);
@@ -493,7 +493,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
     [Fact]
     public async Task BuscarProducto_EmptyTexto_Returns400()
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/ventadetalle/buscarproducto?texto=");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/ventadetalle/autocomplete?texto=");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
 
         var response = await _client.SendAsync(request);
