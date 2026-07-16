@@ -653,4 +653,30 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
 
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     }
+
+    [Fact]
+    public async Task Delete_ValidDelete_RestoresStockInDatabase()
+    {
+        var detalle = await CreateDetalleAsync(piezas: 3);
+
+        var searchRequest = new HttpRequestMessage(HttpMethod.Get, "/api/v1/ventadetalle/autocomplete?texto=intproducto");
+        searchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var searchAfterCreate = await _client.SendAsync(searchRequest);
+        var productosAfterCreate = await searchAfterCreate.Content.ReadFromJsonAsync<IEnumerable<ProProductoAutocompleteDto>>();
+        productosAfterCreate!.First().strTextoAutocomplete.Should().Contain("#: 997");
+
+        var deleteDto = new { id = detalle.id, RowVersion = detalle.RowVersion };
+        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/ventadetalle/{detalle.id}")
+        {
+            Content = JsonContent.Create(deleteDto)
+        };
+        deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        await _client.SendAsync(deleteRequest);
+
+        var searchAfterDeleteRequest = new HttpRequestMessage(HttpMethod.Get, "/api/v1/ventadetalle/autocomplete?texto=intproducto");
+        searchAfterDeleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        var searchAfterDelete = await _client.SendAsync(searchAfterDeleteRequest);
+        var productosAfterDelete = await searchAfterDelete.Content.ReadFromJsonAsync<IEnumerable<ProProductoAutocompleteDto>>();
+        productosAfterDelete!.First().strTextoAutocomplete.Should().Contain("#: 1000");
+    }
 }

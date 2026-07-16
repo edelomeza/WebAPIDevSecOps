@@ -131,6 +131,7 @@ namespace WebAPIDevSecOps.Services
                 throw new ArgumentException("El ID del detalle no coincide.");
 
             var detalle = await _context.Set<VenVentaDetalle>()
+                .Include(vd => vd.ProProducto)
                 .FirstOrDefaultAsync(vd => vd.id == id);
 
             if (detalle == null)
@@ -140,21 +141,43 @@ namespace WebAPIDevSecOps.Services
             if (!ventaExiste)
                 throw new ArgumentException("La venta especificada no existe.");
 
-            var producto = await _context.Set<ProProducto>()
+            var productoNuevo = await _context.Set<ProProducto>()
                 .Where(p => p.id == dto.idProProducto)
-                .Select(p => new { p.decPrecio })
                 .FirstOrDefaultAsync();
 
-            if (producto == null)
+            if (productoNuevo == null)
                 throw new ArgumentException("El producto especificado no existe.");
 
             if (dto.RowVersion is { Length: > 0 })
                 _context.Entry(detalle).Property("RowVersion").OriginalValue = dto.RowVersion;
 
+            var productoAnterior = detalle.ProProducto;
+
+            if (productoAnterior.id == dto.idProProducto)
+            {
+                var diff = detalle.intPiezaVenta - dto.intPiezaVenta;
+                if (diff < 0 && dto.intPiezaVenta > productoAnterior.intNumeroExistencia + detalle.intPiezaVenta)
+                    throw new ArgumentException("El producto no tiene las suficientes existencias.");
+
+                productoAnterior.intNumeroExistencia += diff;
+                _context.Entry(productoAnterior).State = EntityState.Modified;
+            }
+            else
+            {
+                productoAnterior.intNumeroExistencia += detalle.intPiezaVenta;
+                _context.Entry(productoAnterior).State = EntityState.Modified;
+
+                if (dto.intPiezaVenta > productoNuevo.intNumeroExistencia)
+                    throw new ArgumentException("El producto no tiene las suficientes existencias.");
+
+                productoNuevo.intNumeroExistencia -= dto.intPiezaVenta;
+                _context.Entry(productoNuevo).State = EntityState.Modified;
+            }
+
             detalle.idVenVenta = dto.idVenVenta;
             detalle.idProProducto = dto.idProProducto;
             detalle.intPiezaVenta = dto.intPiezaVenta;
-            detalle.decTotalVenta = dto.intPiezaVenta * producto.decPrecio;
+            detalle.decTotalVenta = dto.intPiezaVenta * productoNuevo.decPrecio;
 
             _context.Entry(detalle).State = EntityState.Modified;
             await _dbResilience.SaveChangesAsync(_context);
@@ -163,6 +186,7 @@ namespace WebAPIDevSecOps.Services
         public async Task DeleteAsync(int id, VenVentaDetalleDeleteDto dto)
         {
             var detalle = await _context.Set<VenVentaDetalle>()
+                .Include(vd => vd.ProProducto)
                 .FirstOrDefaultAsync(vd => vd.id == id);
 
             if (detalle == null)
@@ -170,6 +194,9 @@ namespace WebAPIDevSecOps.Services
 
             if (dto.RowVersion is { Length: > 0 })
                 _context.Entry(detalle).Property("RowVersion").OriginalValue = dto.RowVersion;
+
+            detalle.ProProducto.intNumeroExistencia += detalle.intPiezaVenta;
+            _context.Entry(detalle.ProProducto).State = EntityState.Modified;
 
             _context.Set<VenVentaDetalle>().Remove(detalle);
             await _dbResilience.SaveChangesAsync(_context);

@@ -144,5 +144,29 @@ namespace UnitTest.VentaDetalle
 
             result.Should().BeOfType<ConflictResult>();
         }
+
+        [Fact]
+        public async Task Delete_RestoresProductoExistencias()
+        {
+            var (context, ventaId, productoId) = await SeedDependenciesAsync();
+            var controller = CreateController(context);
+
+            var createDto = new VenVentaDetalleCreateDto
+            {
+                idVenVenta = ventaId,
+                idProProducto = productoId,
+                intPiezaVenta = 3
+            };
+
+            await controller.Create(createDto);
+
+            var detalle = context.Set<VenVentaDetalle>().First();
+            var deleteDto = TestDataFactory.CreateVentaDetalleDeleteDto(detalle.id);
+
+            await controller.Delete(detalle.id, deleteDto);
+
+            var producto = context.ProProducto.First();
+            producto.intNumeroExistencia.Should().Be(10);
+        }
     }
 }
