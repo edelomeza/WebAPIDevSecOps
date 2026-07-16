@@ -218,5 +218,72 @@ namespace UnitTest.VentaDetalle
 
             result.Should().BeOfType<ConflictResult>();
         }
+
+        [Fact]
+        public async Task Update_AdjustsStock_WhenPiezasIncrease()
+        {
+            var (context, ventaId, productoId, _) = await SeedDependenciesAsync();
+            var detalle = await SeedDetalleAsync(context, ventaId, productoId, piezas: 2);
+            var controller = CreateController(context);
+            var dto = TestDataFactory.CreateVentaDetalleUpdateDto(detalle.id, ventaId, productoId, piezas: 5);
+
+            await controller.Update(detalle.id, dto);
+
+            var producto = context.ProProducto.First();
+            producto.intNumeroExistencia.Should().Be(7);
+        }
+
+        [Fact]
+        public async Task Update_AdjustsStock_WhenPiezasDecrease()
+        {
+            var (context, ventaId, productoId, _) = await SeedDependenciesAsync();
+            var detalle = await SeedDetalleAsync(context, ventaId, productoId, piezas: 5);
+            var controller = CreateController(context);
+            var dto = TestDataFactory.CreateVentaDetalleUpdateDto(detalle.id, ventaId, productoId, piezas: 2);
+
+            await controller.Update(detalle.id, dto);
+
+            var producto = context.ProProducto.First();
+            producto.intNumeroExistencia.Should().Be(13);
+        }
+
+        [Fact]
+        public async Task Update_AdjustsStock_WhenProductoChanges()
+        {
+            var (context, ventaId, productoId, _) = await SeedDependenciesAsync();
+            var detalle = await SeedDetalleAsync(context, ventaId, productoId, piezas: 2);
+
+            var otroProducto = new ProProducto { strNombreProducto = "Otro Producto", intNumeroExistencia = 5, decPrecio = 299.99m, RowVersion = new byte[] { 1, 0, 0, 0 } };
+            context.ProProducto.Add(otroProducto);
+            await context.SaveChangesAsync();
+
+            var controller = CreateController(context);
+            var dto = TestDataFactory.CreateVentaDetalleUpdateDto(detalle.id, ventaId, otroProducto.id, piezas: 2);
+
+            await controller.Update(detalle.id, dto);
+
+            var productoOriginal = context.ProProducto.First(p => p.id == productoId);
+            var productoNuevo = context.ProProducto.First(p => p.id == otroProducto.id);
+            productoOriginal.intNumeroExistencia.Should().Be(12);
+            productoNuevo.intNumeroExistencia.Should().Be(3);
+        }
+
+        [Fact]
+        public async Task Update_ReturnsBadRequest_WhenInsufficientStock()
+        {
+            var (context, ventaId, productoId, _) = await SeedDependenciesAsync();
+            var detalle = await SeedDetalleAsync(context, ventaId, productoId, piezas: 1);
+
+            var otroProducto = new ProProducto { strNombreProducto = "Otro Producto", intNumeroExistencia = 2, decPrecio = 50m, RowVersion = new byte[] { 1, 0, 0, 0 } };
+            context.ProProducto.Add(otroProducto);
+            await context.SaveChangesAsync();
+
+            var controller = CreateController(context);
+            var dto = TestDataFactory.CreateVentaDetalleUpdateDto(detalle.id, ventaId, otroProducto.id, piezas: 5);
+
+            var result = await controller.Update(detalle.id, dto);
+
+            result.Should().BeOfType<BadRequestObjectResult>();
+        }
     }
 }
